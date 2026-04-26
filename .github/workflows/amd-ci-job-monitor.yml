@@ -45,20 +45,17 @@ jobs:
       workflow_list: ${{ steps.parse.outputs.workflow_list }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install pyyaml
 
       - name: Parse workflow files
         id: parse
         run: |
-          python .github/scripts/list_jobs.py \
+          uv run --with pyyaml python .github/scripts/list_jobs.py \
             --workflow-dir ".github/workflows" \
             --workflows "${{ github.event.inputs.workflows || '' }}" \
             --exclude-workflows "amd-ci-job-monitor.yml" \
@@ -67,7 +64,7 @@ jobs:
             --out-workflow-map workflow_map.json
 
           echo "matrix=$(cat matrix.json)" >> "$GITHUB_OUTPUT"
-          python - <<'PY'
+          uv run --with pyyaml python - <<'PY'
           import json
           m = json.load(open("workflow_map.json", "r", encoding="utf-8"))
           print(f"workflow_list={','.join(m.keys())}")
@@ -79,7 +76,7 @@ jobs:
       - name: Show parsed workflows
         run: |
           echo "Workflow list: ${{ steps.parse.outputs.workflow_list }}"
-          echo "Matrix size: $(python - <<'PY'
+          echo "Matrix size: $(uv run --with pyyaml python - <<'PY'
           import json
           print(len(json.load(open("matrix.json", "r", encoding="utf-8"))))
           PY
@@ -93,15 +90,12 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install requests tabulate
 
       - name: Generate custom report
         run: |
@@ -109,7 +103,7 @@ jobs:
             echo "Error: 'workflows' input is required when 'job_filter' is set."
             exit 1
           fi
-          python .github/scripts/query_job_status.py \
+          uv run --with requests --with tabulate python .github/scripts/query_job_status.py \
             --repo "${{ github.repository }}" \
             --workflows "${{ github.event.inputs.workflows }}" \
             --job "${{ github.event.inputs.job_filter }}" \
@@ -125,20 +119,17 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install requests tabulate
 
       - name: Fetch snapshot
         run: |
           HOURS="${{ github.event_name == 'pull_request' && '1' || (github.event.inputs.hours || '24') }}"
-          python .github/scripts/query_job_status.py \
+          uv run --with requests --with tabulate python .github/scripts/query_job_status.py \
             --repo "${{ github.repository }}" \
             --workflows "${{ needs.parse-workflows.outputs.workflow_list }}" \
             --hours "${HOURS}" \
@@ -161,15 +152,12 @@ jobs:
         include: ${{ fromJson(needs.parse-workflows.outputs.matrix) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install requests tabulate
 
       - name: Download actions snapshot
         uses: actions/download-artifact@v4
@@ -179,7 +167,7 @@ jobs:
 
       - name: Generate report
         run: |
-          python .github/scripts/query_job_status.py \
+          uv run --with requests --with tabulate python .github/scripts/query_job_status.py \
             --repo "${{ github.repository }}" \
             --snapshot-in "actions-snapshot.json" \
             --workflows "${{ matrix.workflow }}" \
@@ -193,15 +181,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install requests tabulate
 
       - name: Download actions snapshot
         uses: actions/download-artifact@v4
@@ -211,7 +196,7 @@ jobs:
 
       - name: Generate runner fleet report
         run: |
-          python .github/scripts/query_job_status.py \
+          uv run --with requests --with tabulate python .github/scripts/query_job_status.py \
             --repo "${{ github.repository }}" \
             --snapshot-in "actions-snapshot.json" \
             --workflows "${{ needs.parse-workflows.outputs.workflow_list }}" \
