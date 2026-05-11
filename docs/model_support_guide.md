@@ -25,6 +25,15 @@ support_model_arch_dict = {
 
 ATOM resolves the HuggingFace `architectures` field from a model's `config.json` against this dictionary. If the architecture string matches a key, ATOM imports and instantiates the corresponding class.
 
+### Kernel backend selector (phase 1)
+
+Model ops can be routed through the kernel backend selector via environment variables in `atom.utils.envs`:
+
+- `ATOM_KERNEL_BACKEND_MODE=auto|aiter|te` (default `auto`)
+- `ATOM_TE_OP_ALLOWLIST` / `ATOM_TE_OP_DENYLIST` (CSV operation filters)
+
+Current selector-wired ops are `rmsnorm`, `linear`, and `attention_mha`. In this phase, model-op execution remains AITER-only and fails loudly in forced `te` mode when an operation path is not yet implemented.
+
 ---
 
 ## 1. Supported Model Architectures
