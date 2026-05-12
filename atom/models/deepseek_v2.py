@@ -1165,7 +1165,7 @@ class Indexer(nn.Module):
 
         self.scale_fmt = "ue8m0"
         self.quant_func = get_hip_quant(QuantType.per_1x128)
-        self.quant_block_size = 128  # TODO: get from config
+        self.quant_block_size = getattr(config, "quant_block_size", 128)
         self.topk_indices_buffer = topk_indices_buffer
 
         # TODO (zyongye) change dim to fp8 later to (self.head_dim + 4)
