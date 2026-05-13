@@ -7,106 +7,42 @@ yielding complete sentences for audio generation.
 Ported from vLLM-Omni's text_splitter.py.
 """
 
-import re
-from re import Pattern
+import logging
 
-# Maximum buffer size (in characters) to prevent unbounded memory growth.
-_MAX_BUFFER_SIZE = 100_000  # ~100 KB of text
+try:
+    import rs_codec
+    _HAS_RUST = True
+except ImportError:
+    _HAS_RUST = False
 
-# Sentence-level: .!? + CJK sentence-ending 。！？
-# English requires trailing whitespace to confirm a boundary —
-# end-of-string is NOT treated as a boundary (that is what flush() is for).
-SPLIT_SENTENCE = re.compile(
-    r"(?<=[.!?])\s+"
-    r"|(?<=[。！？])"
-)
-
-# Clause-level: adds CJK commas ， and semicolons ；
-SPLIT_CLAUSE = re.compile(
-    r"(?<=[.!?])\s+"
-    r"|(?<=[。！？，；])"
-)
-
+logger = logging.getLogger("atom.audio")
 
 class SentenceSplitter:
     """Incremental sentence splitter for streaming text input.
 
     Buffers text and yields complete sentences when boundaries are detected.
     Designed for TTS pipelines where text arrives incrementally.
-
-    Args:
-        min_sentence_length: Minimum character length for a sentence.
-            Sentences shorter than this are kept in the buffer to avoid
-            splitting on abbreviations like "Dr." or "U.S.".
-        boundary_re: Custom compiled regex for sentence boundaries.
-            Use ``SPLIT_SENTENCE`` (default) for sentence-level splitting,
-            ``SPLIT_CLAUSE`` for finer-grained clause-level splitting.
+    Powered by rs_codec fast Rust implementation.
     """
 
-    def __init__(
-        self,
-        min_sentence_length: int = 2,
-        boundary_re: Pattern[str] | None = None,
-    ) -> None:
-        self._buffer: str = ""
-        self._min_sentence_length = min_sentence_length
-        self._boundary_re = boundary_re or SPLIT_SENTENCE
+    def __init__(self, min_sentence_length: int = 2, boundary_re=None) -> None:
+        if boundary_re is not None:
+            logger.warning("SentenceSplitter: boundary_re is ignored when using Rust backend.")
+            
+        if not _HAS_RUST:
+            raise RuntimeError("rs_codec is required for SentenceSplitter but is not installed.")
+            
+        self._splitter = rs_codec.SentenceSplitter(min_sentence_length=min_sentence_length)
 
     @property
     def buffer(self) -> str:
-        return self._buffer
+        return self._splitter.buffer
 
     def add_text(self, text: str) -> list[str]:
-        """Add text to the buffer and return any complete sentences.
-
-        Returns:
-            List of complete sentences extracted from the buffer.
-            May be empty if no sentence boundary was found.
-
-        Raises:
-            ValueError: If the buffer exceeds the maximum size.
-        """
         if not text:
             return []
-
-        self._buffer += text
-        if len(self._buffer) > _MAX_BUFFER_SIZE:
-            raise ValueError(
-                f"Text buffer exceeded maximum size ({_MAX_BUFFER_SIZE} chars). "
-                "Consider adding sentence-ending punctuation to your input."
-            )
-        return self._extract_sentences()
+        return self._splitter.add_text(text)
 
     def flush(self) -> str | None:
-        """Flush remaining buffered text as a final sentence.
+        return self._splitter.flush()
 
-        Returns:
-            The remaining buffered text (stripped), or None if buffer is empty.
-        """
-        remaining = self._buffer.strip()
-        self._buffer = ""
-        return remaining if remaining else None
-
-    def _extract_sentences(self) -> list[str]:
-        """Split buffer at sentence boundaries, keeping incomplete text buffered."""
-        parts = self._boundary_re.split(self._buffer)
-
-        if len(parts) <= 1:
-            return []
-
-        sentences: list[str] = []
-        carry = ""
-        for i in range(len(parts) - 1):
-            text = carry + parts[i]
-            carry = ""
-            stripped = text.strip()
-            if len(stripped) >= self._min_sentence_length:
-                sentences.append(stripped)
-            elif stripped:
-                # Too short (e.g. "Dr.") — carry forward to next part
-                carry = text
-
-        # Last part stays in buffer (may be incomplete)
-        self._buffer = carry + parts[-1]
-
-        return sentences

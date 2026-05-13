@@ -198,8 +198,22 @@ class ChatterboxEngine:
         t3 = time.time()
         wav = self.service.decode_speech(speech_tokens, ref_data)
         metrics["decode_sec"] = time.time() - t3
+        
+        # 5. Apply AGC and Soft Compression (CPU via Rust)
+        t4 = time.time()
+        try:
+            import rs_codec
+            # target_rms=-18dBFS ~ 0.125. 
+            # Apply soft compression first to tame peaks
+            wav, _ = rs_codec.soft_compressor(wav, 0.5, 4.0, 0.01, 0.1, 1.0)
+            # Apply AGC to level out everything to -18dBFS
+            wav, _ = rs_codec.agc_kernel(wav, 0.125, 0.01, 0.1, 10.0, 2400, 1.0)
+        except ImportError:
+            logger.debug("rs_codec not available; skipping audio post-processing.")
+        metrics["postprocess_sec"] = time.time() - t4
+
         metrics["audio_duration"] = len(wav) / SAMPLE_RATE
-        metrics["total_sec"] = sum(metrics[k] for k in ["encode_sec", "prepare_sec", "generate_sec", "decode_sec"])
+        metrics["total_sec"] = sum(metrics[k] for k in ["encode_sec", "prepare_sec", "generate_sec", "decode_sec", "postprocess_sec"])
         metrics["rtf"] = metrics["total_sec"] / max(metrics["audio_duration"], 0.001)
 
         return wav, metrics

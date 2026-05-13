@@ -399,7 +399,33 @@ class tokenIDProcessor:
                         and self.pre_num_decode_token_per_seq > 1
                     ):
                         # draft_token_ids is 2D (num_seqs, mtp_n_grams-1), use direct indexing
-                        gathered_draft = self.draft_token_ids[deferred_indices_gpu]
+                        # RDNA2 (gfx1030) HIP crash workaround: advanced tensor
+                        # indexing with GPU index tensors can trigger
+                        # AcceleratorError / unspecified launch failure on RDNA2.
+                        # Fall back to CPU-side index_select when HIP fails.
+                        try:
+                            gathered_draft = self.draft_token_ids[deferred_indices_gpu]
+                        except Exception as _hip_err:
+                            _err = str(_hip_err).lower()
+                            if 'hip' in _err or 'acceleratorerror' in _err or 'unspecified launch failure' in _err:
+                                logger.warning(
+                                    "HIP indexing failure in draft token gathering; "
+                                    "falling back to CPU index_select "
+                                    "(draft_token_ids: shape=%s, strides=%s, "
+                                    "indices: shape=%s, dtype=%s)",
+                                    tuple(self.draft_token_ids.shape),
+                                    self.draft_token_ids.stride(),
+                                    tuple(deferred_indices_gpu.shape),
+                                    deferred_indices_gpu.dtype,
+                                )
+                                cpu_idx = deferred_indices_gpu.to("cpu", non_blocking=True)
+                                cpu_draft = self.draft_token_ids.detach().to("cpu", non_blocking=True)
+                                gathered_cpu = cpu_draft.index_select(0, cpu_idx.flatten())
+                                gathered_draft = gathered_cpu.to(
+                                    self.draft_token_ids.device, non_blocking=True
+                                )
+                            else:
+                                raise
                         gathered_tokens = torch.cat(
                             [
                                 gathered_prev.unsqueeze(1),  # (num_deferred_seqs, 1)
