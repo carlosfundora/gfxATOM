@@ -52,6 +52,7 @@ logger = logging.getLogger("atom")
 
 support_model_arch_dict = {
     "Qwen3ForCausalLM": "atom.models.qwen3.Qwen3ForCausalLM",
+    "Qwen2ForCausalLM": "atom.models.qwen2.Qwen2ForCausalLM",
     "Qwen3MoeForCausalLM": "atom.models.qwen3_moe.Qwen3MoeForCausalLM",
     "LlamaForCausalLM": "atom.models.llama.LlamaForCausalLM",
     "MixtralForCausalLM": "atom.models.mixtral.MixtralForCausalLM",
@@ -67,6 +68,7 @@ support_model_arch_dict = {
     "KimiK25ForConditionalGeneration": "atom.models.kimi_k25.KimiK25ForCausalLM",
     "MiniMaxM2ForCausalLM": "atom.models.minimax_m2.MiniMaxM2ForCausalLM",
     "MiMoV2FlashForCausalLM": "atom.models.mimo_v2_flash.MiMoV2FlashForCausalLM",
+    "GPT2LMHeadModel": "atom.models.gpt2.GPT2LMHeadModel",
 }
 # seed = 34567
 # np.random.seed(seed)
@@ -1752,6 +1754,41 @@ class ModelRunner:
         hidden_states: torch.Tensor,
         needs_independent_noise: bool = False,
     ) -> ScheduledBatchOutput:
+        if getattr(batch, "is_embedding_batch", False):
+            embeddings: list[list[float]] = []
+            offset = 0
+            for num_tokens, pooling, dimensions in zip(
+                batch.num_scheduled_tokens,
+                batch.embedding_pooling,
+                batch.embedding_dimensions,
+            ):
+                next_offset = offset + int(num_tokens)
+                seq_hidden = hidden_states[offset:next_offset]
+                if seq_hidden.numel() == 0:
+                    raise ValueError("Cannot embed an empty token sequence")
+                if pooling == "mean":
+                    pooled = seq_hidden.float().mean(dim=0)
+                elif pooling == "last":
+                    pooled = seq_hidden[-1].float()
+                else:
+                    raise ValueError(f"Unsupported embedding pooling mode: {pooling}")
+                if dimensions is not None:
+                    pooled = pooled[: int(dimensions)]
+                pooled = torch.nn.functional.normalize(pooled, p=2, dim=0)
+                embeddings.append(pooled.detach().cpu().tolist())
+                offset = next_offset
+            self.forward_done_event.record()
+            self.forward_done_event.synchronize()
+            return ScheduledBatchOutput(
+                req_ids=batch.req_ids,
+                token_ids=[tuple() for _ in batch.req_ids],
+                draft_token_ids=None,
+                is_deferred_out=False,
+                num_rejected=np.zeros(batch.total_seqs_num, dtype=np.int32),
+                num_bonus=np.zeros(batch.total_seqs_num, dtype=np.int32),
+                embeddings=embeddings,
+            )
+
         spec_decode_metadata = get_forward_context().spec_decode_metadata
         bs = batch.total_seqs_num
         if spec_decode_metadata is None:
