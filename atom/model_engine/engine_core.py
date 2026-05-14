@@ -3,7 +3,6 @@
 
 import enum
 import logging
-import pickle
 import queue
 import threading
 import time
@@ -13,6 +12,8 @@ from typing import List
 import torch
 import zmq
 from atom.config import Config, ParallelConfig
+from atom.utils.pickle import safe_loads
+import pickle
 from atom.model_engine.async_proc import AsyncIOProcManager
 from atom.model_engine.scheduler import Scheduler
 from atom.model_engine.sequence import Sequence, SequenceStatus, get_exit_sequence
@@ -279,7 +280,7 @@ class EngineCore:
                 for input_socket, _ in poller.poll():
                     # (RequestType, RequestData)
                     obj = input_socket.recv(copy=False)
-                    request_type, reqs = pickle.loads(obj)
+                    request_type, reqs = safe_loads(obj)
                     if request_type == EngineCoreRequestType.ADD:
                         req_ids = [req.id for req in reqs]
                         logger.debug(

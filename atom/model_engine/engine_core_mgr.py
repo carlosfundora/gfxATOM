@@ -4,7 +4,6 @@
 import asyncio
 import logging
 import multiprocessing
-import pickle
 import queue
 import weakref
 from threading import Thread
@@ -21,6 +20,8 @@ from atom.utils import (
     make_zmq_socket,
     set_device_control_env_var,
 )
+from atom.utils.pickle import safe_loads
+import pickle
 
 logger = logging.getLogger("atom")
 
@@ -175,7 +176,7 @@ class CoreManager:
                     continue
 
                 obj = socket.recv(copy=False)
-                request_type, data = pickle.loads(obj)
+                request_type, data = safe_loads(obj)
 
                 if request_type == EngineCoreRequestType.READY:
                     logger.info(
@@ -216,7 +217,7 @@ class CoreManager:
                         break
 
                     obj = output_socket.recv(copy=False)
-                    request_type, data = pickle.loads(obj)
+                    request_type, data = safe_loads(obj)
                     if request_type == EngineCoreRequestType.SHUTDOWN:
                         logger.debug(
                             f"{self.label} (DP {dp_rank}): output thread receive SHUTDOWN request"

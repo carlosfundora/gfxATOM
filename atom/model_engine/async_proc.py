@@ -15,7 +15,6 @@ This module provides:
 
 import logging
 import multiprocessing
-import pickle
 import queue
 import threading
 import weakref
@@ -34,6 +33,8 @@ from atom.utils import (
     resolve_obj_by_qualname,
     shutdown_all_processes,
 )
+from atom.utils.pickle import safe_loads
+import pickle
 
 logger = logging.getLogger("atom")
 
@@ -147,7 +148,7 @@ class AsyncIOProc:
             while getattr(self, "still_running", True):
                 for socket, _ in poller.poll(timeout=1000):
                     serialized_obj = socket.recv(copy=False)
-                    input_obj = pickle.loads(serialized_obj)
+                    input_obj = safe_loads(serialized_obj)
                     input_queue.put_nowait(input_obj)
 
     def send_output_to_socket(self, addr: str, output_queue: queue.Queue):
@@ -327,7 +328,7 @@ class AsyncIOProcManager:
                 if not socks:
                     continue
                 obj = output_socket.recv(copy=False)
-                obj = pickle.loads(obj)
+                obj = safe_loads(obj)
                 self.outputs_queue.put_nowait(obj)
         finally:
             output_socket.close(linger=0)
@@ -344,7 +345,7 @@ class AsyncIOProcManager:
                 if not socks:
                     continue
                 obj = output_socket.recv(copy=False)
-                obj = pickle.loads(obj)
+                obj = safe_loads(obj)
                 self.kv_outputs_queues[worker_id].put_nowait(obj)
         finally:
             output_socket.close(linger=0)
