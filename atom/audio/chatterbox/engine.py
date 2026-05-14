@@ -199,12 +199,15 @@ class ChatterboxEngine:
         
         # 5. Apply AGC and Soft Compression (CPU via Rust)
         t4 = time.time()
-        # import rs_codec
-        # target_rms=-18dBFS ~ 0.125. 
-        # Apply soft compression first to tame peaks
-        # wav, _ = rs_codec.soft_compressor(wav, 0.5, 4.0, 0.01, 0.1, 1.0)
-        # Apply AGC to level out everything to -18dBFS
-        # wav, _ = rs_codec.agc_kernel(wav, 0.125, 0.01, 0.1, 10.0, 2400, 1.0)
+        try:
+            import rs_codec
+            # target_rms=-18dBFS ~ 0.125.
+            # Apply soft compression first to tame peaks
+            wav, _ = rs_codec.soft_compressor(wav, 0.5, 4.0, 0.01, 0.1, 1.0)
+            # Apply AGC to level out everything to -18dBFS
+            wav, _ = rs_codec.agc_kernel(wav, 0.125, 0.01, 0.1, 10.0, 2400, 1.0)
+        except ImportError:
+            pass # Fallback if rs_codec not installed
         metrics["postprocess_sec"] = time.time() - t4
 
         metrics["audio_duration"] = len(wav) / SAMPLE_RATE
@@ -232,6 +235,7 @@ class ChatterboxEngine:
 
         past_key_values = None
 
+        next_token = None
         for i in range(max_tokens):
             if i == 0:
                 outputs = self._model(
@@ -307,7 +311,8 @@ class ChatterboxEngine:
         llm_input_names = {i.name for i in llm.get_inputs()}
         needs_position_ids = "position_ids" in llm_input_names
 
-        rep_penalty_fn = lambda ids, scores: self._np_rep_penalty(ids, scores, repetition_penalty)
+        def rep_penalty_fn(ids, scores):
+            return self._np_rep_penalty(ids, scores, repetition_penalty)
         generate_tokens = np.array([[START_SPEECH_TOKEN]], dtype=np.int64)
 
         batch_size = 1
@@ -319,6 +324,7 @@ class ChatterboxEngine:
             for kv in ("key", "value")
         }
 
+        next_token = None
         for i in range(max_tokens):
             if i == 0:
                 cur_embeds = inputs_embeds
