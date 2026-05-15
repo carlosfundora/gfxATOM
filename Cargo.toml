@@ -1,0 +1,4 @@
+[workspace]
+members = ["crates/rs_atom_engine_profile"]
+resolver = "2"
+
