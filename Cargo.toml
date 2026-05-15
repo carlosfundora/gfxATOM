@@ -1,4 +1,8 @@
 [workspace]
-members = ["crates/rs_atom_engine_profile"]
+members = [
+    "crates/rs_atom_engine_profile",
+    "crates/rs_kv_codec_adapters",
+    "crates/rs_kv_quant_contracts",
+    "crates/rs_autoquant_policy",
+]
 resolver = "2"
-
