@@ -131,9 +131,34 @@ class MLASparseAttentionImplPluginModeMethods:
 
         kv_buffer = kv_cache.unsqueeze(2)
 
-        # TODO: Currently, persistent mode has memory access issues when input context is long
-        # in fp8 kv cache settings, so it is not used for now.
-        # Re-enable persistent mode when the issue is fixed.
+        use_persistent_mode = not (
+            self.dcp_world_size > 1 and self.kv_cache_dtype == "fp8"
+        )
+        if not use_persistent_mode:
+            work_meta_data = None
+            work_indptr = None
+            work_info_set = None
+            reduce_indptr = None
+            reduce_final_map = None
+            reduce_partial_map = None
+        else:
+            is_sparse_mtp = (
+                self.topk_indices_buffer is not None and attn_metadata.max_seqlen_q > 1
+            )
+            if is_sparse_mtp:
+                work_meta_data = attn_metadata.sparse_mtp_work_meta_data
+                work_indptr = attn_metadata.sparse_mtp_work_indptr
+                work_info_set = attn_metadata.sparse_mtp_work_info_set
+                reduce_indptr = attn_metadata.sparse_mtp_reduce_indptr
+                reduce_final_map = attn_metadata.sparse_mtp_reduce_final_map
+                reduce_partial_map = attn_metadata.sparse_mtp_reduce_partial_map
+            else:
+                work_meta_data = attn_metadata.work_meta_data
+                work_indptr = attn_metadata.work_indptr
+                work_info_set = attn_metadata.work_info_set
+                reduce_indptr = attn_metadata.reduce_indptr
+                reduce_final_map = attn_metadata.reduce_final_map
+                reduce_partial_map = attn_metadata.reduce_partial_map
         mla_decode_fwd(
             q,
             kv_buffer.view(-1, 1, 1, q.shape[-1]),
@@ -143,6 +168,13 @@ class MLASparseAttentionImplPluginModeMethods:
             sparse_meta.paged_kv_indices,
             sparse_meta.paged_kv_last_page_len,
             1,
+            work_meta_data=work_meta_data,
+            work_indptr=work_indptr,
+            work_info_set=work_info_set,
+            reduce_indptr=reduce_indptr,
+            reduce_final_map=reduce_final_map,
+            reduce_partial_map=reduce_partial_map,
+
             sm_scale=self.scale,
             q_scale=layer._q_scale,
             kv_scale=layer._k_scale,
