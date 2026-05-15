@@ -235,6 +235,7 @@ class ChatterboxEngine:
 
         past_key_values = None
 
+        next_token = None
         for i in range(max_tokens):
             if i == 0:
                 outputs = self._model(
@@ -310,7 +311,8 @@ class ChatterboxEngine:
         llm_input_names = {i.name for i in llm.get_inputs()}
         needs_position_ids = "position_ids" in llm_input_names
 
-        rep_penalty_fn = lambda ids, scores: self._np_rep_penalty(ids, scores, repetition_penalty)
+        def rep_penalty_fn(ids, scores):
+            return self._np_rep_penalty(ids, scores, repetition_penalty)
         generate_tokens = np.array([[START_SPEECH_TOKEN]], dtype=np.int64)
 
         batch_size = 1
@@ -322,6 +324,7 @@ class ChatterboxEngine:
             for kv in ("key", "value")
         }
 
+        next_token = None
         for i in range(max_tokens):
             if i == 0:
                 cur_embeds = inputs_embeds
