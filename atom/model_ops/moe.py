@@ -309,8 +309,6 @@ class FusedMoEMethodBase(QuantizeMethodBase):
 
         prepare_finalize: FusedMoEPrepareAndFinalize | None = None
 
-        # TODO: could allow this now
-        # assert not moe.use_flashinfer_cutlass_kernels, "Must be created in modelopt.py"
         if moe.use_mori_kernels:
             assert quant_config is not None
             # For PTPC (per token per channel) quant, the scale dim for each token is 1
