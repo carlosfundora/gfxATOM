@@ -2,7 +2,7 @@
 
 ## Source donor
 
-- `gfxATOM-Rust/donors/R-KV`
+- `.archived/repos/R-KV`
 
 ## What was assimilated
 

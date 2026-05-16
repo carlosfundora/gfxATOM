@@ -2,7 +2,7 @@
 
 ## Source donor
 
-- `gfxATOM-Rust/donors/quant.cpp`
+- `.archived/repos/quant.cpp`
 
 ## What was assimilated
 

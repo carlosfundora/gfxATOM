@@ -2,7 +2,7 @@
 
 ## Source donor
 
-- `gfxATOM-Rust/donors/sardeenz`
+- `.archived/repos/sardeenz`
 
 ## What was assimilated
 

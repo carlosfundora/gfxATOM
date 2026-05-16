@@ -2,7 +2,7 @@
 
 ## Source donor
 
-- `gfxATOM-Rust/donors/llama-swap`
+- `.archived/repos/llama-swap`
 
 ## What was assimilated
 
