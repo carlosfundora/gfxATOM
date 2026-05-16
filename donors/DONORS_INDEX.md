@@ -2,6 +2,32 @@
 
 Scope: external donor/reference repos cloned under `gfxATOM-Rust/donors/`.
 
+## Execution status (2026-05-16)
+
+- Approved extraction+archive wave executed for one-concern/high-ROI donors.
+- Extraction manifests written under:
+  - `/home/local/ai/build/kernels/canonical/manifests/donor_extract_manifest_<repo>.json`
+- Consolidated execution log:
+  - `/home/local/ai/build/kernels/canonical/manifests/donor_extraction_execution_log.json`
+- Harvest destination:
+  - `/home/local/ai/build/kernels/canonical/harvested/donor_unique_features/`
+- Archived repos moved to:
+  - `/home/local/ai/projects/.archived/repos/`
+
+Archived after successful extraction:
+- `KVCache-Factory`
+- `NautilusQuant`
+- `QAQ-KVCacheQuantization`
+- `RateQuant`
+- `delta-k-quantization`
+- `kv-cache-quantization`
+- `norm-separated-quantization`
+- `rust-llama.cpp`
+- `turbo-quant`
+- `vLLMTurboQuantKVCacheCPU`
+- `vllm_backend`
+- `wobble-quant-cache`
+
 Legend:
 - **Claimed focus** = what repo README/docs explicitly claims.
 - **Best-at (for us)** = where this donor appears most valuable for fusion work.

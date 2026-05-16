@@ -98,11 +98,25 @@ pub fn run_validation_suite() -> ValidationReport {
             && runtime_profile.radix_protected_tokens.is_none()
             && runtime_profile.radix_evictable_tokens.is_none()
             && runtime_profile.radix_page_size.is_none()
+            && runtime_profile.supports_automatic_prefix_caching
+            && runtime_profile.supports_radix_cache
+            && runtime_profile.supports_kv_events
+            && !runtime_profile.supports_fp8_kv_cache
+            && !runtime_profile.supports_turboquant_kv
+            && !runtime_profile.supports_rotorquant_kv
+            && !runtime_profile.supports_eagle3
+            && !runtime_profile.supports_medusa
+            && !runtime_profile.supports_ngram_speculation
+            && !runtime_profile.supports_phantom
+            && !runtime_profile.supports_phantom_x
+            && runtime_profile.storage_tiers_supported.len() == 2
             && runtime_profile.storage_backend.is_none()
             && runtime_profile.storage_supports_stats.is_none()
             && runtime_profile.storage_supports_zero_copy.is_none()
             && runtime_profile.storage_layout_mode.is_none()
-            && runtime_profile.storage_transfer_mem_type.is_none(),
+            && runtime_profile.storage_transfer_mem_type.is_none()
+            && runtime_profile.attention_kernel_capabilities.is_none()
+            && runtime_profile.amd_kv_kernel_profile.is_none(),
         note: "radix cache state placeholder is empty until runtime wiring lands".into(),
     });
 
