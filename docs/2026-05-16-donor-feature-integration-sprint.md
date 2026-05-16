@@ -300,6 +300,14 @@ Outcome:
 
 - Layer offloading is now explicit in the runtime profile contract without changing execution behavior.
 
+### Wave 27 (sglang-1-bit-turbo autoquant observer snapshot)
+
+1. `sglang-1-bit-turbo` observer-snapshot parity for autoquant policy validation
+
+Outcome:
+
+- Autoquant observer snapshots now round-trip through the Rust policy crate and validation harness.
+
 ## Toggle/Configuration Contract
 
 All extracted features are opt-in by default and must remain fail-closed.

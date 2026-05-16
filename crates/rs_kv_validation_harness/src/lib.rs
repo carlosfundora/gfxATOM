@@ -1,4 +1,4 @@
-use rs_autoquant_policy::{AutoQuantFingerprint, AutoQuantPolicy};
+use rs_autoquant_policy::{AutoQuantFingerprint, AutoQuantObserverSnapshot, AutoQuantPolicy, SideStats};
 use rs_atom_engine_profile::EngineRuntimeProfile;
 use rs_kv_codec_adapters::CodecAdapterRegistry;
 use rs_kv_quant_contracts::{
@@ -56,6 +56,37 @@ pub fn run_validation_suite() -> ValidationReport {
         name: "autoquant_round_trip".into(),
         passed: round_trip,
         note: "json policy round-trip".into(),
+    });
+
+    let mut observer_layers = std::collections::BTreeMap::new();
+    observer_layers.insert(
+        "L0_K".into(),
+        SideStats {
+            sample_count: 3,
+            dynamic_range: 1.5,
+            mean_abs: 0.8,
+            rms: 0.9,
+            kurtosis: 2.1,
+            sparsity: 0.12,
+            last_observed_at: 42.0,
+        },
+    );
+    let observer_snapshot = AutoQuantObserverSnapshot {
+        n_layers: 2,
+        sample_every: 64,
+        ema_alpha: 0.05,
+        sparsity_eps: 1e-4,
+        total_observations: 9,
+        layers: observer_layers,
+    };
+    let observer_round_trip = serde_json::to_string(&observer_snapshot)
+        .ok()
+        .and_then(|json| serde_json::from_str::<AutoQuantObserverSnapshot>(&json).ok())
+        .is_some();
+    cases.push(ValidationCase {
+        name: "autoquant_observer_round_trip".into(),
+        passed: observer_round_trip,
+        note: "json observer snapshot round-trip".into(),
     });
 
     let fp = AutoQuantFingerprint {

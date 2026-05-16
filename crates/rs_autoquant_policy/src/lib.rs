@@ -264,4 +264,34 @@ mod tests {
         let d: AutoQuantPolicy = serde_json::from_str(&s).unwrap();
         assert_eq!(d.layer_codecs.len(), 1);
     }
+
+    #[test]
+    fn observer_snapshot_round_trips() {
+        let mut layers = BTreeMap::new();
+        layers.insert(
+            "L0_K".into(),
+            SideStats {
+                sample_count: 3,
+                dynamic_range: 1.5,
+                mean_abs: 0.8,
+                rms: 0.9,
+                kurtosis: 2.1,
+                sparsity: 0.12,
+                last_observed_at: 42.0,
+            },
+        );
+        let snapshot = AutoQuantObserverSnapshot {
+            n_layers: 2,
+            sample_every: 64,
+            ema_alpha: 0.05,
+            sparsity_eps: 1e-4,
+            total_observations: 9,
+            layers,
+        };
+
+        let json = serde_json::to_string(&snapshot).unwrap();
+        let restored: AutoQuantObserverSnapshot = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.total_observations, 9);
+        assert!(restored.layers.contains_key("L0_K"));
+    }
 }
