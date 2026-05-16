@@ -128,6 +128,21 @@ pub fn run_validation_suite() -> ValidationReport {
         note: serde_json::to_string(&runtime_profile).unwrap(),
     });
 
+    let gfxgraph_profile = EngineRuntimeProfile::default().with_gfxgraph_bridge_state(
+        true,
+        true,
+        true,
+        false,
+    );
+    cases.push(ValidationCase {
+        name: "gfxgraph_bridge_profile_shape".into(),
+        passed: gfxgraph_profile.supports_graph_shape_bucketing
+            && gfxgraph_profile.supports_graph_validation_mode
+            && gfxgraph_profile.supports_graph_conditional_nodes
+            && !gfxgraph_profile.supports_graph_nested_capture,
+        note: serde_json::to_string(&gfxgraph_profile).unwrap(),
+    });
+
     cases.push(ValidationCase {
         name: "radix_runtime_profile_defaults".into(),
         passed: runtime_profile.radix_cache_kind.is_none()

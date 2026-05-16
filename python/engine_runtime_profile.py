@@ -73,6 +73,10 @@ class EngineRuntimeProfile:
     supports_pure_jax_tpu_serving: bool = False
     supports_cross_device_benchmarking: bool = False
     supports_single_graph_capture: bool = False
+    supports_graph_shape_bucketing: bool = False
+    supports_graph_validation_mode: bool = False
+    supports_graph_conditional_nodes: bool = False
+    supports_graph_nested_capture: bool = False
     supports_fp8_channelscale_epilogue: bool = False
     supports_cached_ttft_reporting: bool = False
     supports_peak_throughput_reporting: bool = False
@@ -215,6 +219,22 @@ class EngineRuntimeProfile:
             supports_layer_offloading=supports_layer_offloading,
         )
 
+    def with_gfxgraph_bridge_state(
+        self,
+        *,
+        supports_graph_shape_bucketing: bool,
+        supports_graph_validation_mode: bool,
+        supports_graph_conditional_nodes: bool,
+        supports_graph_nested_capture: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_graph_shape_bucketing=supports_graph_shape_bucketing,
+            supports_graph_validation_mode=supports_graph_validation_mode,
+            supports_graph_conditional_nodes=supports_graph_conditional_nodes,
+            supports_graph_nested_capture=supports_graph_nested_capture,
+        )
+
     def with_compact_runtime_state(
         self,
         *,
@@ -294,6 +314,10 @@ class EngineRuntimeProfile:
         supports_pure_jax_tpu_serving: bool,
         supports_cross_device_benchmarking: bool,
         supports_single_graph_capture: bool,
+        supports_graph_shape_bucketing: bool,
+        supports_graph_validation_mode: bool,
+        supports_graph_conditional_nodes: bool,
+        supports_graph_nested_capture: bool,
         supports_fp8_channelscale_epilogue: bool,
         supports_cached_ttft_reporting: bool,
         supports_peak_throughput_reporting: bool,
@@ -306,6 +330,10 @@ class EngineRuntimeProfile:
             supports_pure_jax_tpu_serving=supports_pure_jax_tpu_serving,
             supports_cross_device_benchmarking=supports_cross_device_benchmarking,
             supports_single_graph_capture=supports_single_graph_capture,
+            supports_graph_shape_bucketing=supports_graph_shape_bucketing,
+            supports_graph_validation_mode=supports_graph_validation_mode,
+            supports_graph_conditional_nodes=supports_graph_conditional_nodes,
+            supports_graph_nested_capture=supports_graph_nested_capture,
             supports_fp8_channelscale_epilogue=supports_fp8_channelscale_epilogue,
             supports_cached_ttft_reporting=supports_cached_ttft_reporting,
             supports_peak_throughput_reporting=supports_peak_throughput_reporting,

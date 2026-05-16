@@ -308,6 +308,14 @@ Outcome:
 
 - Autoquant observer snapshots now round-trip through the Rust policy crate and validation harness.
 
+### Wave 28 (gfxGRAPH graph bridge runtime profile)
+
+1. `gfxGRAPH` runtime profile lane for graph shape bucketing, validation, conditional nodes, and nested capture
+
+Outcome:
+
+- gfxGRAPH graph-bridge capabilities are now explicit in the runtime profile contract with matching Python/Rust parity coverage.
+
 ## Toggle/Configuration Contract
 
 All extracted features are opt-in by default and must remain fail-closed.

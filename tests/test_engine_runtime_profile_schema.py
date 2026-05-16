@@ -187,6 +187,10 @@ def test_python_runtime_profile_serving_benchmark_helper():
         supports_pure_jax_tpu_serving=True,
         supports_cross_device_benchmarking=True,
         supports_single_graph_capture=True,
+        supports_graph_shape_bucketing=True,
+        supports_graph_validation_mode=True,
+        supports_graph_conditional_nodes=False,
+        supports_graph_nested_capture=False,
         supports_fp8_channelscale_epilogue=True,
         supports_cached_ttft_reporting=True,
         supports_peak_throughput_reporting=True,
@@ -198,8 +202,27 @@ def test_python_runtime_profile_serving_benchmark_helper():
     assert payload["supports_pure_jax_tpu_serving"] is True
     assert payload["supports_cross_device_benchmarking"] is True
     assert payload["supports_single_graph_capture"] is True
+    assert payload["supports_graph_shape_bucketing"] is True
+    assert payload["supports_graph_validation_mode"] is True
+    assert payload["supports_graph_conditional_nodes"] is False
+    assert payload["supports_graph_nested_capture"] is False
     assert payload["supports_fp8_channelscale_epilogue"] is True
     assert payload["supports_cached_ttft_reporting"] is True
     assert payload["supports_peak_throughput_reporting"] is True
     assert payload["supports_perplexity_reporting"] is False
     assert payload["supports_streaming_api_server"] is True
+
+
+def test_python_runtime_profile_gfxgraph_bridge_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_gfxgraph_bridge_state(
+        supports_graph_shape_bucketing=True,
+        supports_graph_validation_mode=True,
+        supports_graph_conditional_nodes=True,
+        supports_graph_nested_capture=False,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_graph_shape_bucketing"] is True
+    assert payload["supports_graph_validation_mode"] is True
+    assert payload["supports_graph_conditional_nodes"] is True
+    assert payload["supports_graph_nested_capture"] is False

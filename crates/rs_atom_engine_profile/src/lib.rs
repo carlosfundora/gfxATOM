@@ -265,6 +265,10 @@ pub struct EngineRuntimeProfile {
     pub supports_pure_jax_tpu_serving: bool,
     pub supports_cross_device_benchmarking: bool,
     pub supports_single_graph_capture: bool,
+    pub supports_graph_shape_bucketing: bool,
+    pub supports_graph_validation_mode: bool,
+    pub supports_graph_conditional_nodes: bool,
+    pub supports_graph_nested_capture: bool,
     pub supports_fp8_channelscale_epilogue: bool,
     pub supports_cached_ttft_reporting: bool,
     pub supports_peak_throughput_reporting: bool,
@@ -386,6 +390,10 @@ impl Default for EngineRuntimeProfile {
             supports_pure_jax_tpu_serving: false,
             supports_cross_device_benchmarking: false,
             supports_single_graph_capture: false,
+            supports_graph_shape_bucketing: false,
+            supports_graph_validation_mode: false,
+            supports_graph_conditional_nodes: false,
+            supports_graph_nested_capture: false,
             supports_fp8_channelscale_epilogue: false,
             supports_cached_ttft_reporting: false,
             supports_peak_throughput_reporting: false,
@@ -597,6 +605,10 @@ impl EngineRuntimeProfile {
         supports_pure_jax_tpu_serving: bool,
         supports_cross_device_benchmarking: bool,
         supports_single_graph_capture: bool,
+        supports_graph_shape_bucketing: bool,
+        supports_graph_validation_mode: bool,
+        supports_graph_conditional_nodes: bool,
+        supports_graph_nested_capture: bool,
         supports_fp8_channelscale_epilogue: bool,
         supports_cached_ttft_reporting: bool,
         supports_peak_throughput_reporting: bool,
@@ -607,11 +619,29 @@ impl EngineRuntimeProfile {
         self.supports_pure_jax_tpu_serving = supports_pure_jax_tpu_serving;
         self.supports_cross_device_benchmarking = supports_cross_device_benchmarking;
         self.supports_single_graph_capture = supports_single_graph_capture;
+        self.supports_graph_shape_bucketing = supports_graph_shape_bucketing;
+        self.supports_graph_validation_mode = supports_graph_validation_mode;
+        self.supports_graph_conditional_nodes = supports_graph_conditional_nodes;
+        self.supports_graph_nested_capture = supports_graph_nested_capture;
         self.supports_fp8_channelscale_epilogue = supports_fp8_channelscale_epilogue;
         self.supports_cached_ttft_reporting = supports_cached_ttft_reporting;
         self.supports_peak_throughput_reporting = supports_peak_throughput_reporting;
         self.supports_perplexity_reporting = supports_perplexity_reporting;
         self.supports_streaming_api_server = supports_streaming_api_server;
+        self
+    }
+
+    pub fn with_gfxgraph_bridge_state(
+        mut self,
+        supports_graph_shape_bucketing: bool,
+        supports_graph_validation_mode: bool,
+        supports_graph_conditional_nodes: bool,
+        supports_graph_nested_capture: bool,
+    ) -> Self {
+        self.supports_graph_shape_bucketing = supports_graph_shape_bucketing;
+        self.supports_graph_validation_mode = supports_graph_validation_mode;
+        self.supports_graph_conditional_nodes = supports_graph_conditional_nodes;
+        self.supports_graph_nested_capture = supports_graph_nested_capture;
         self
     }
 }
@@ -655,6 +685,10 @@ mod tests {
         assert!(!profile.supports_openai_compatible_server);
         assert!(!profile.supports_progressive_kv_compression);
         assert!(!profile.supports_full_document_mode);
+        assert!(!profile.supports_graph_shape_bucketing);
+        assert!(!profile.supports_graph_validation_mode);
+        assert!(!profile.supports_graph_conditional_nodes);
+        assert!(!profile.supports_graph_nested_capture);
         assert_eq!(
             profile.storage_tiers_supported,
             vec![KvStorageTier::Hbm, KvStorageTier::CpuRam]
@@ -803,17 +837,32 @@ mod tests {
     #[test]
     fn serving_benchmark_state_helper_sets_serving_benchmark_capabilities() {
         let profile = EngineRuntimeProfile::default().with_serving_benchmark_state(
-            true, true, true, true, true, true, true, false, true,
+            true, true, true, true, true, true, true, true, true, true, true, false, true,
         );
         assert!(profile.supports_rust_native_gpu_serving);
         assert!(profile.supports_pure_jax_tpu_serving);
         assert!(profile.supports_cross_device_benchmarking);
         assert!(profile.supports_single_graph_capture);
+        assert!(profile.supports_graph_shape_bucketing);
+        assert!(profile.supports_graph_validation_mode);
+        assert!(profile.supports_graph_conditional_nodes);
+        assert!(profile.supports_graph_nested_capture);
         assert!(profile.supports_fp8_channelscale_epilogue);
         assert!(profile.supports_cached_ttft_reporting);
         assert!(profile.supports_peak_throughput_reporting);
         assert!(!profile.supports_perplexity_reporting);
         assert!(profile.supports_streaming_api_server);
+    }
+
+    #[test]
+    fn gfxgraph_bridge_state_helper_sets_graph_bridge_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_gfxgraph_bridge_state(
+            true, true, true, false,
+        );
+        assert!(profile.supports_graph_shape_bucketing);
+        assert!(profile.supports_graph_validation_mode);
+        assert!(profile.supports_graph_conditional_nodes);
+        assert!(!profile.supports_graph_nested_capture);
     }
 
     #[test]
