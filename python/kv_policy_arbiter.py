@@ -5,12 +5,22 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 
 from wave1_donor_adapters import (
+    DeltaKvProfile,
+    QaqProfile,
+    NautilusProfile,
     RateQuantProfile,
+    WobbleProfile,
     TurboQuantProfile,
     NormGuardrailProfile,
+    RedundancyAwareKvProfile,
+    delta_kv_profile,
+    qaq_quality_profile,
+    nautilus_geometric_profile,
     ratequant_optimal_bit_allocation,
+    wobble_variance_bit_allocation,
     turboquant_profile,
     norm_separated_guardrail,
+    rkv_redundancy_profile,
 )
 
 class KvPolicyFamily(str, Enum):
@@ -20,6 +30,7 @@ class KvPolicyFamily(str, Enum):
     wobble = "wobble"
     qaq = "qaq"
     nautilus = "nautilus"
+    rkv = "rkv"
 
 
 SUPPORTED_FEATURE_FLAGS: dict[KvPolicyFamily, str] = {
@@ -28,6 +39,7 @@ SUPPORTED_FEATURE_FLAGS: dict[KvPolicyFamily, str] = {
     KvPolicyFamily.wobble: "GFXATOM_KV_WOBBLE",
     KvPolicyFamily.qaq: "GFXATOM_KV_QAQ",
     KvPolicyFamily.nautilus: "GFXATOM_KV_NAUTILUS",
+    KvPolicyFamily.rkv: "GFXATOM_KV_RKV",
 }
 
 
@@ -47,17 +59,32 @@ class KvPolicyDecision:
 class Wave1PolicyProfile:
     decision: KvPolicyDecision
     ratequant: RateQuantProfile | None = None
+    delta_kv: DeltaKvProfile | None = None
+    wobble: WobbleProfile | None = None
+    qaq: QaqProfile | None = None
+    nautilus: NautilusProfile | None = None
     turboquant: TurboQuantProfile | None = None
     guardrail: NormGuardrailProfile | None = None
+    rkv: RedundancyAwareKvProfile | None = None
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {"decision": self.decision.to_dict()}
         if self.ratequant is not None:
             payload["ratequant"] = self.ratequant.to_dict()
+        if self.delta_kv is not None:
+            payload["delta_kv"] = self.delta_kv.to_dict()
+        if self.wobble is not None:
+            payload["wobble"] = self.wobble.to_dict()
+        if self.qaq is not None:
+            payload["qaq"] = self.qaq.to_dict()
+        if self.nautilus is not None:
+            payload["nautilus"] = self.nautilus.to_dict()
         if self.turboquant is not None:
             payload["turboquant"] = self.turboquant.to_dict()
         if self.guardrail is not None:
             payload["guardrail"] = self.guardrail.to_dict()
+        if self.rkv is not None:
+            payload["rkv"] = self.rkv.to_dict()
         return payload
 
 
@@ -176,6 +203,21 @@ def build_wave1_policy_profile(
             sensitivities or [1.0, 1.0, 1.0, 1.0],
             total_budget=total_budget,
         )
+    delta_kv = None
+    if decision.selected_family is KvPolicyFamily.deltak:
+        delta_kv = delta_kv_profile()
+    wobble = None
+    if decision.selected_family is KvPolicyFamily.wobble:
+        wobble = wobble_variance_bit_allocation(
+            sensitivities or [1.0, 1.0, 1.0, 1.0],
+            total_budget=total_budget,
+        )
+    qaq = None
+    if decision.selected_family is KvPolicyFamily.qaq:
+        qaq = qaq_quality_profile(sensitivities or [1.0, 1.0, 1.0, 1.0])
+    nautilus = None
+    if decision.selected_family is KvPolicyFamily.nautilus:
+        nautilus = nautilus_geometric_profile(outlier_ratio=outlier_ratio)
     turbo = None
     if decision.selected_family in {KvPolicyFamily.ratequant, KvPolicyFamily.deltak}:
         turbo = turboquant_profile(
@@ -186,9 +228,17 @@ def build_wave1_policy_profile(
         requested_bits=total_bits_per_value,
         outlier_ratio=outlier_ratio,
     )
+    rkv = None
+    if decision.selected_family is KvPolicyFamily.rkv:
+        rkv = rkv_redundancy_profile()
     return Wave1PolicyProfile(
         decision=decision,
         ratequant=ratequant,
+        delta_kv=delta_kv,
+        wobble=wobble,
+        qaq=qaq,
+        nautilus=nautilus,
         turboquant=turbo,
         guardrail=guardrail,
+        rkv=rkv,
     )

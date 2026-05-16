@@ -205,6 +205,10 @@ pub struct EngineRuntimeProfile {
     pub supports_lmcache_connector: bool,
     pub supports_kv_events: bool,
     pub supports_fp8_kv_cache: bool,
+    pub supports_fp8_kv_per_tensor_scales: bool,
+    pub supports_fp8_kv_per_head_scales: bool,
+    pub supports_kv_scale_calibration: bool,
+    pub supports_quantized_attention_fusion: bool,
     pub supports_turboquant_kv: bool,
     pub supports_rotorquant_kv: bool,
     pub supports_eagle3: bool,
@@ -217,6 +221,54 @@ pub struct EngineRuntimeProfile {
     pub supports_prefix_aware_attention: bool,
     pub supports_content_addressed_cache: bool,
     pub supports_position_independent_cache: bool,
+    pub supports_model_hot_swap: bool,
+    pub supports_model_aliases: bool,
+    pub supports_model_groups: bool,
+    pub supports_ttl_unload: bool,
+    pub supports_request_filters: bool,
+    pub supports_config_reload: bool,
+    pub supports_direct_model_passthrough: bool,
+    pub supports_dynamic_model_loading: bool,
+    pub supports_dynamic_model_unloading: bool,
+    pub supports_multi_model_packing: bool,
+    pub supports_multi_gpu_distribution: bool,
+    pub supports_kvcached_memory_sharing: bool,
+    pub supports_model_sleep_mode: bool,
+    pub supports_model_move_operations: bool,
+    pub supports_gpu_memory_telemetry: bool,
+    pub supports_cpu_only_runtime: bool,
+    pub supports_download_on_first_use: bool,
+    pub supports_ollama_style_cli: bool,
+    pub supports_openai_compatible_server: bool,
+    pub supports_progressive_kv_compression: bool,
+    pub supports_full_document_mode: bool,
+    pub supports_distributed_memory_pooling: bool,
+    pub supports_dynamic_multilevel_caching: bool,
+    pub supports_global_metadata_management: bool,
+    pub supports_capacity_management: bool,
+    pub supports_prefix_matching: bool,
+    pub supports_sliding_window_matching: bool,
+    pub supports_kv_matching: bool,
+    pub supports_two_phase_write: bool,
+    pub supports_async_eviction: bool,
+    pub supports_trace_replay_optimization: bool,
+    pub supports_model_free_ptq: bool,
+    pub supports_compressed_tensors_format: bool,
+    pub supports_weight_quantization_pipeline: bool,
+    pub supports_activation_quantization_pipeline: bool,
+    pub supports_kv_cache_quantization_pipeline: bool,
+    pub supports_attention_quantization_pipeline: bool,
+    pub supports_disk_offloading_quantization: bool,
+    pub supports_distributed_calibration: bool,
+    pub supports_rust_native_gpu_serving: bool,
+    pub supports_pure_jax_tpu_serving: bool,
+    pub supports_cross_device_benchmarking: bool,
+    pub supports_single_graph_capture: bool,
+    pub supports_fp8_channelscale_epilogue: bool,
+    pub supports_cached_ttft_reporting: bool,
+    pub supports_peak_throughput_reporting: bool,
+    pub supports_perplexity_reporting: bool,
+    pub supports_streaming_api_server: bool,
     pub storage_tiers_supported: Vec<KvStorageTier>,
     pub delegate_backend: Option<String>,
     pub placeholder: Option<String>,
@@ -273,6 +325,10 @@ impl Default for EngineRuntimeProfile {
             supports_lmcache_connector: false,
             supports_kv_events: true,
             supports_fp8_kv_cache: false,
+            supports_fp8_kv_per_tensor_scales: false,
+            supports_fp8_kv_per_head_scales: false,
+            supports_kv_scale_calibration: false,
+            supports_quantized_attention_fusion: false,
             supports_turboquant_kv: false,
             supports_rotorquant_kv: false,
             supports_eagle3: false,
@@ -285,6 +341,54 @@ impl Default for EngineRuntimeProfile {
             supports_prefix_aware_attention: false,
             supports_content_addressed_cache: false,
             supports_position_independent_cache: false,
+            supports_model_hot_swap: false,
+            supports_model_aliases: false,
+            supports_model_groups: false,
+            supports_ttl_unload: false,
+            supports_request_filters: false,
+            supports_config_reload: false,
+            supports_direct_model_passthrough: false,
+            supports_dynamic_model_loading: false,
+            supports_dynamic_model_unloading: false,
+            supports_multi_model_packing: false,
+            supports_multi_gpu_distribution: false,
+            supports_kvcached_memory_sharing: false,
+            supports_model_sleep_mode: false,
+            supports_model_move_operations: false,
+            supports_gpu_memory_telemetry: false,
+            supports_cpu_only_runtime: false,
+            supports_download_on_first_use: false,
+            supports_ollama_style_cli: false,
+            supports_openai_compatible_server: false,
+            supports_progressive_kv_compression: false,
+            supports_full_document_mode: false,
+            supports_distributed_memory_pooling: false,
+            supports_dynamic_multilevel_caching: false,
+            supports_global_metadata_management: false,
+            supports_capacity_management: false,
+            supports_prefix_matching: false,
+            supports_sliding_window_matching: false,
+            supports_kv_matching: false,
+            supports_two_phase_write: false,
+            supports_async_eviction: false,
+            supports_trace_replay_optimization: false,
+            supports_model_free_ptq: false,
+            supports_compressed_tensors_format: false,
+            supports_weight_quantization_pipeline: false,
+            supports_activation_quantization_pipeline: false,
+            supports_kv_cache_quantization_pipeline: false,
+            supports_attention_quantization_pipeline: false,
+            supports_disk_offloading_quantization: false,
+            supports_distributed_calibration: false,
+            supports_rust_native_gpu_serving: false,
+            supports_pure_jax_tpu_serving: false,
+            supports_cross_device_benchmarking: false,
+            supports_single_graph_capture: false,
+            supports_fp8_channelscale_epilogue: false,
+            supports_cached_ttft_reporting: false,
+            supports_peak_throughput_reporting: false,
+            supports_perplexity_reporting: false,
+            supports_streaming_api_server: false,
             storage_tiers_supported: vec![KvStorageTier::Hbm, KvStorageTier::CpuRam],
             delegate_backend: None,
             placeholder: None,
@@ -340,6 +444,22 @@ impl EngineRuntimeProfile {
         self
     }
 
+    pub fn with_fp8_kv_cache_state(
+        mut self,
+        supports_fp8_kv_cache: bool,
+        supports_fp8_kv_per_tensor_scales: bool,
+        supports_fp8_kv_per_head_scales: bool,
+        supports_kv_scale_calibration: bool,
+        supports_quantized_attention_fusion: bool,
+    ) -> Self {
+        self.supports_fp8_kv_cache = supports_fp8_kv_cache;
+        self.supports_fp8_kv_per_tensor_scales = supports_fp8_kv_per_tensor_scales;
+        self.supports_fp8_kv_per_head_scales = supports_fp8_kv_per_head_scales;
+        self.supports_kv_scale_calibration = supports_kv_scale_calibration;
+        self.supports_quantized_attention_fusion = supports_quantized_attention_fusion;
+        self
+    }
+
     pub fn with_storage_backend_state(
         mut self,
         storage_backend: impl Into<String>,
@@ -353,6 +473,138 @@ impl EngineRuntimeProfile {
         self.storage_supports_zero_copy = Some(storage_supports_zero_copy);
         self.storage_layout_mode = Some(storage_layout_mode.into());
         self.storage_transfer_mem_type = storage_transfer_mem_type;
+        self
+    }
+
+    pub fn with_model_routing_state(
+        mut self,
+        supports_model_hot_swap: bool,
+        supports_model_aliases: bool,
+        supports_model_groups: bool,
+        supports_ttl_unload: bool,
+        supports_request_filters: bool,
+        supports_config_reload: bool,
+        supports_direct_model_passthrough: bool,
+    ) -> Self {
+        self.supports_model_hot_swap = supports_model_hot_swap;
+        self.supports_model_aliases = supports_model_aliases;
+        self.supports_model_groups = supports_model_groups;
+        self.supports_ttl_unload = supports_ttl_unload;
+        self.supports_request_filters = supports_request_filters;
+        self.supports_config_reload = supports_config_reload;
+        self.supports_direct_model_passthrough = supports_direct_model_passthrough;
+        self
+    }
+
+    pub fn with_model_packing_state(
+        mut self,
+        supports_dynamic_model_loading: bool,
+        supports_dynamic_model_unloading: bool,
+        supports_multi_model_packing: bool,
+        supports_multi_gpu_distribution: bool,
+        supports_kvcached_memory_sharing: bool,
+        supports_model_sleep_mode: bool,
+        supports_model_move_operations: bool,
+        supports_gpu_memory_telemetry: bool,
+    ) -> Self {
+        self.supports_dynamic_model_loading = supports_dynamic_model_loading;
+        self.supports_dynamic_model_unloading = supports_dynamic_model_unloading;
+        self.supports_multi_model_packing = supports_multi_model_packing;
+        self.supports_multi_gpu_distribution = supports_multi_gpu_distribution;
+        self.supports_kvcached_memory_sharing = supports_kvcached_memory_sharing;
+        self.supports_model_sleep_mode = supports_model_sleep_mode;
+        self.supports_model_move_operations = supports_model_move_operations;
+        self.supports_gpu_memory_telemetry = supports_gpu_memory_telemetry;
+        self
+    }
+
+    pub fn with_compact_runtime_state(
+        mut self,
+        supports_cpu_only_runtime: bool,
+        supports_download_on_first_use: bool,
+        supports_ollama_style_cli: bool,
+        supports_openai_compatible_server: bool,
+        supports_progressive_kv_compression: bool,
+        supports_full_document_mode: bool,
+    ) -> Self {
+        self.supports_cpu_only_runtime = supports_cpu_only_runtime;
+        self.supports_download_on_first_use = supports_download_on_first_use;
+        self.supports_ollama_style_cli = supports_ollama_style_cli;
+        self.supports_openai_compatible_server = supports_openai_compatible_server;
+        self.supports_progressive_kv_compression = supports_progressive_kv_compression;
+        self.supports_full_document_mode = supports_full_document_mode;
+        self
+    }
+
+    pub fn with_storage_orchestration_state(
+        mut self,
+        supports_distributed_memory_pooling: bool,
+        supports_dynamic_multilevel_caching: bool,
+        supports_global_metadata_management: bool,
+        supports_capacity_management: bool,
+        supports_prefix_matching: bool,
+        supports_sliding_window_matching: bool,
+        supports_kv_matching: bool,
+        supports_two_phase_write: bool,
+        supports_async_eviction: bool,
+        supports_trace_replay_optimization: bool,
+    ) -> Self {
+        self.supports_distributed_memory_pooling = supports_distributed_memory_pooling;
+        self.supports_dynamic_multilevel_caching = supports_dynamic_multilevel_caching;
+        self.supports_global_metadata_management = supports_global_metadata_management;
+        self.supports_capacity_management = supports_capacity_management;
+        self.supports_prefix_matching = supports_prefix_matching;
+        self.supports_sliding_window_matching = supports_sliding_window_matching;
+        self.supports_kv_matching = supports_kv_matching;
+        self.supports_two_phase_write = supports_two_phase_write;
+        self.supports_async_eviction = supports_async_eviction;
+        self.supports_trace_replay_optimization = supports_trace_replay_optimization;
+        self
+    }
+
+    pub fn with_quantization_pipeline_state(
+        mut self,
+        supports_model_free_ptq: bool,
+        supports_compressed_tensors_format: bool,
+        supports_weight_quantization_pipeline: bool,
+        supports_activation_quantization_pipeline: bool,
+        supports_kv_cache_quantization_pipeline: bool,
+        supports_attention_quantization_pipeline: bool,
+        supports_disk_offloading_quantization: bool,
+        supports_distributed_calibration: bool,
+    ) -> Self {
+        self.supports_model_free_ptq = supports_model_free_ptq;
+        self.supports_compressed_tensors_format = supports_compressed_tensors_format;
+        self.supports_weight_quantization_pipeline = supports_weight_quantization_pipeline;
+        self.supports_activation_quantization_pipeline = supports_activation_quantization_pipeline;
+        self.supports_kv_cache_quantization_pipeline = supports_kv_cache_quantization_pipeline;
+        self.supports_attention_quantization_pipeline = supports_attention_quantization_pipeline;
+        self.supports_disk_offloading_quantization = supports_disk_offloading_quantization;
+        self.supports_distributed_calibration = supports_distributed_calibration;
+        self
+    }
+
+    pub fn with_serving_benchmark_state(
+        mut self,
+        supports_rust_native_gpu_serving: bool,
+        supports_pure_jax_tpu_serving: bool,
+        supports_cross_device_benchmarking: bool,
+        supports_single_graph_capture: bool,
+        supports_fp8_channelscale_epilogue: bool,
+        supports_cached_ttft_reporting: bool,
+        supports_peak_throughput_reporting: bool,
+        supports_perplexity_reporting: bool,
+        supports_streaming_api_server: bool,
+    ) -> Self {
+        self.supports_rust_native_gpu_serving = supports_rust_native_gpu_serving;
+        self.supports_pure_jax_tpu_serving = supports_pure_jax_tpu_serving;
+        self.supports_cross_device_benchmarking = supports_cross_device_benchmarking;
+        self.supports_single_graph_capture = supports_single_graph_capture;
+        self.supports_fp8_channelscale_epilogue = supports_fp8_channelscale_epilogue;
+        self.supports_cached_ttft_reporting = supports_cached_ttft_reporting;
+        self.supports_peak_throughput_reporting = supports_peak_throughput_reporting;
+        self.supports_perplexity_reporting = supports_perplexity_reporting;
+        self.supports_streaming_api_server = supports_streaming_api_server;
         self
     }
 }
@@ -369,6 +621,32 @@ mod tests {
         assert!(profile.supports_automatic_prefix_caching);
         assert!(profile.supports_radix_cache);
         assert!(profile.supports_kv_events);
+        assert!(!profile.supports_fp8_kv_cache);
+        assert!(!profile.supports_fp8_kv_per_tensor_scales);
+        assert!(!profile.supports_fp8_kv_per_head_scales);
+        assert!(!profile.supports_kv_scale_calibration);
+        assert!(!profile.supports_quantized_attention_fusion);
+        assert!(!profile.supports_model_hot_swap);
+        assert!(!profile.supports_model_aliases);
+        assert!(!profile.supports_model_groups);
+        assert!(!profile.supports_ttl_unload);
+        assert!(!profile.supports_request_filters);
+        assert!(!profile.supports_config_reload);
+        assert!(!profile.supports_direct_model_passthrough);
+        assert!(!profile.supports_dynamic_model_loading);
+        assert!(!profile.supports_dynamic_model_unloading);
+        assert!(!profile.supports_multi_model_packing);
+        assert!(!profile.supports_multi_gpu_distribution);
+        assert!(!profile.supports_kvcached_memory_sharing);
+        assert!(!profile.supports_model_sleep_mode);
+        assert!(!profile.supports_model_move_operations);
+        assert!(!profile.supports_gpu_memory_telemetry);
+        assert!(!profile.supports_cpu_only_runtime);
+        assert!(!profile.supports_download_on_first_use);
+        assert!(!profile.supports_ollama_style_cli);
+        assert!(!profile.supports_openai_compatible_server);
+        assert!(!profile.supports_progressive_kv_compression);
+        assert!(!profile.supports_full_document_mode);
         assert_eq!(
             profile.storage_tiers_supported,
             vec![KvStorageTier::Hbm, KvStorageTier::CpuRam]
@@ -404,6 +682,18 @@ mod tests {
     }
 
     #[test]
+    fn fp8_kv_cache_state_helper_sets_fp8_kv_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_fp8_kv_cache_state(
+            true, true, false, true, false,
+        );
+        assert!(profile.supports_fp8_kv_cache);
+        assert!(profile.supports_fp8_kv_per_tensor_scales);
+        assert!(!profile.supports_fp8_kv_per_head_scales);
+        assert!(profile.supports_kv_scale_calibration);
+        assert!(!profile.supports_quantized_attention_fusion);
+    }
+
+    #[test]
     fn storage_backend_state_helper_sets_storage_state() {
         let profile = EngineRuntimeProfile::default().with_storage_backend_state(
             "mooncake",
@@ -420,6 +710,96 @@ mod tests {
             Some("page_first_direct")
         );
         assert_eq!(profile.storage_transfer_mem_type.as_deref(), Some("FILE"));
+    }
+
+    #[test]
+    fn model_routing_state_helper_sets_routing_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_model_routing_state(
+            true, true, false, true, false, true, false,
+        );
+        assert!(profile.supports_model_hot_swap);
+        assert!(profile.supports_model_aliases);
+        assert!(!profile.supports_model_groups);
+        assert!(profile.supports_ttl_unload);
+        assert!(!profile.supports_request_filters);
+        assert!(profile.supports_config_reload);
+        assert!(!profile.supports_direct_model_passthrough);
+    }
+
+    #[test]
+    fn model_packing_state_helper_sets_packing_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_model_packing_state(
+            true, true, true, true, true, true, false, true,
+        );
+        assert!(profile.supports_dynamic_model_loading);
+        assert!(profile.supports_dynamic_model_unloading);
+        assert!(profile.supports_multi_model_packing);
+        assert!(profile.supports_multi_gpu_distribution);
+        assert!(profile.supports_kvcached_memory_sharing);
+        assert!(profile.supports_model_sleep_mode);
+        assert!(!profile.supports_model_move_operations);
+        assert!(profile.supports_gpu_memory_telemetry);
+    }
+
+    #[test]
+    fn compact_runtime_state_helper_sets_compact_runtime_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_compact_runtime_state(
+            true, true, true, true, true, false,
+        );
+        assert!(profile.supports_cpu_only_runtime);
+        assert!(profile.supports_download_on_first_use);
+        assert!(profile.supports_ollama_style_cli);
+        assert!(profile.supports_openai_compatible_server);
+        assert!(profile.supports_progressive_kv_compression);
+        assert!(!profile.supports_full_document_mode);
+    }
+
+    #[test]
+    fn storage_orchestration_state_helper_sets_storage_orchestration_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_storage_orchestration_state(
+            true, true, true, true, true, false, true, true, true, false,
+        );
+        assert!(profile.supports_distributed_memory_pooling);
+        assert!(profile.supports_dynamic_multilevel_caching);
+        assert!(profile.supports_global_metadata_management);
+        assert!(profile.supports_capacity_management);
+        assert!(profile.supports_prefix_matching);
+        assert!(!profile.supports_sliding_window_matching);
+        assert!(profile.supports_kv_matching);
+        assert!(profile.supports_two_phase_write);
+        assert!(profile.supports_async_eviction);
+        assert!(!profile.supports_trace_replay_optimization);
+    }
+
+    #[test]
+    fn quantization_pipeline_state_helper_sets_quantization_pipeline_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_quantization_pipeline_state(
+            true, true, true, true, true, false, true, true,
+        );
+        assert!(profile.supports_model_free_ptq);
+        assert!(profile.supports_compressed_tensors_format);
+        assert!(profile.supports_weight_quantization_pipeline);
+        assert!(profile.supports_activation_quantization_pipeline);
+        assert!(profile.supports_kv_cache_quantization_pipeline);
+        assert!(!profile.supports_attention_quantization_pipeline);
+        assert!(profile.supports_disk_offloading_quantization);
+        assert!(profile.supports_distributed_calibration);
+    }
+
+    #[test]
+    fn serving_benchmark_state_helper_sets_serving_benchmark_capabilities() {
+        let profile = EngineRuntimeProfile::default().with_serving_benchmark_state(
+            true, true, true, true, true, true, true, false, true,
+        );
+        assert!(profile.supports_rust_native_gpu_serving);
+        assert!(profile.supports_pure_jax_tpu_serving);
+        assert!(profile.supports_cross_device_benchmarking);
+        assert!(profile.supports_single_graph_capture);
+        assert!(profile.supports_fp8_channelscale_epilogue);
+        assert!(profile.supports_cached_ttft_reporting);
+        assert!(profile.supports_peak_throughput_reporting);
+        assert!(!profile.supports_perplexity_reporting);
+        assert!(profile.supports_streaming_api_server);
     }
 
     #[test]

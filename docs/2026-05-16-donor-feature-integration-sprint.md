@@ -124,6 +124,166 @@ Outcome:
 
 - Operational comparability and cleaner runtime packaging.
 
+### Wave 5 (control-plane routing metadata)
+
+1. `llama-swap` capability profile for hot-swap, aliasing, TTL unload, groups, filters, and config reload
+
+Outcome:
+
+- Routing/lifecycle metadata becomes explicit in the engine runtime profile without introducing a gateway implementation.
+
+### Wave 6 (model packing metadata)
+
+1. `sardeenz` capability profile for multi-model packing, GPU distribution, kvcached memory sharing, move operations, and sleep/telemetry state
+
+Outcome:
+
+- GPU residency and model packing capabilities become explicit in the engine runtime profile without introducing a scheduler or dashboard.
+
+### Wave 7 (compact runtime metadata)
+
+1. `quant.cpp` capability profile for CPU-only runtime, on-demand download, Ollama-style CLI, OpenAI-compatible serving, progressive KV compression, and full-document mode
+
+Outcome:
+
+- Compact local-runtime capabilities become explicit in the engine runtime profile without introducing a new runtime stack.
+
+### Wave 8 (quantized KV cache metadata)
+
+1. `vllm` FP8 KV-cache capability profile for per-tensor/per-head scales, calibration, and non-fused quantized attention
+
+Outcome:
+
+- FP8 KV-cache detail becomes explicit in the engine runtime profile without adding a new attention backend.
+
+### Wave 9 (decode-time KV compression policy)
+
+1. `R-KV` redundancy-aware decode-time KV compression profile for observation tokens, redundancy windows, and budgeted top-k selection
+
+Outcome:
+
+- Decode-time KV compression becomes an explicit policy surface without changing the core runtime scheduler.
+
+### Wave 10 (storage orchestration metadata)
+
+1. `tair-kvcache` storage orchestration profile for distributed pooling, dynamic multilevel caching, metadata management, and capacity-aware KV matching
+
+Outcome:
+
+- Storage orchestration capability becomes explicit in the engine runtime profile without adding a new backend or scheduler path.
+
+### Wave 11 (quantization pipeline metadata)
+
+1. `llm-compressor` quantization pipeline profile for model-free PTQ, compressed-tensors output, and weight/activation/KV/attention transforms
+
+Outcome:
+
+- Quantization-pipeline capability becomes explicit in the engine runtime profile without introducing a separate deploy-time backend.
+
+### Wave 12 (serving benchmark telemetry)
+
+1. `rvllm` serving benchmark profile for Rust-native GPU serving, pure JAX TPU serving, cross-device benchmarking, and measurement telemetry
+
+Outcome:
+
+- Serving/benchmark capability becomes explicit in the engine runtime profile without pulling the TPU/GPU stack into gfxATOM.
+
+### Wave 13 (rvLLM KV control-plane contracts)
+
+1. `rvllm` KV transfer/prefetch/eviction/graph/telemetry contract imports for shared policy and validation layers
+
+Outcome:
+
+- rvLLM’s richer Rust KV contract shapes become reusable in gfxATOM without coupling the runtime to rvLLM-specific code.
+
+### Wave 14 (rvLLM graph capture pool)
+
+1. `rvllm` graph capture pool with metadata-layout hash gating and typed replay rejection
+
+Outcome:
+
+- The captured-graph replay contract becomes portable and reusable in gfxATOM without CUDA-specific graph code.
+
+### Wave 15 (rvLLM radix snapshot)
+
+1. `rvllm` radix snapshot contract for compact prefix-tree export and replay tooling
+
+Outcome:
+
+- Prefix-cache export becomes portable through a compact serializable radix snapshot type.
+
+### Wave 16 (SMG dual-hash routing helpers)
+
+1. `smg` dual-hash cache-aware routing helpers for token-block content hashes and chunked request hashing
+
+Outcome:
+
+- Prefix reuse and routing can share a deterministic content-hash primitive without depending on the donor repo.
+
+### Wave 17 (rvLLM KV control-plane contracts)
+
+1. `rvllm` KV transfer/prefetch/eviction/graph/telemetry contract imports for shared policy and validation layers
+
+Outcome:
+
+- rvLLM’s richer KV contract shapes became reusable in gfxATOM without coupling the runtime to rvLLM-specific code.
+
+### Wave 18 (rvLLM graph capture pool)
+
+1. `rvllm` graph capture pool with metadata-layout hash gating and typed replay rejection
+
+Outcome:
+
+- The captured-graph replay contract became portable and reusable in gfxATOM without CUDA-specific graph code.
+
+### Wave 19 (rvLLM radix snapshot)
+
+1. `rvllm` radix snapshot contract for compact prefix-tree export and replay tooling
+
+Outcome:
+
+- Prefix-cache export became portable through a compact serializable radix snapshot type.
+
+### Wave 20 (SMG dual-hash routing helpers)
+
+1. `smg` dual-hash cache-aware routing helpers for token-block content hashes and chunked request hashing
+
+Outcome:
+
+- Prefix reuse and routing can share a deterministic content-hash primitive without depending on the donor repo.
+
+### Wave 21 (SMG prefix-match contract)
+
+1. `smg` prefix-match result contract for tenant IDs, match counts, and hit-ratio bookkeeping
+
+Outcome:
+
+- Prefix-match routing bookkeeping now has a reusable contract surface with deterministic hit-ratio helpers.
+
+### Wave 22 (quant.cpp delta-k KV delta compression)
+
+1. `quant.cpp` delta-k policy lane for key-delta compression metadata
+
+Outcome:
+
+- Delta-k now has a dedicated policy profile surface and validation coverage without changing the runtime backend contract.
+
+### Wave 23 (wobble-quant-cache variance-weighted KV allocation)
+
+1. `wobble-quant-cache` variance-aware bit allocation lane for adaptive KV compression
+
+Outcome:
+
+- Wobble now has a dedicated variance-weighted policy profile and validation coverage without changing the runtime backend contract.
+
+### Wave 24 (QAQ quality-adaptive KV quantization)
+
+1. `QAQ-KVCacheQuantization` quality-targeted lane for KV compression decisions
+
+Outcome:
+
+- QAQ now has a dedicated quality-adaptive policy profile and validation coverage without changing the runtime backend contract.
+
 ## Toggle/Configuration Contract
 
 All extracted features are opt-in by default and must remain fail-closed.

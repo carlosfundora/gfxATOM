@@ -13,6 +13,10 @@ class EngineRuntimeProfile:
     supports_lmcache_connector: bool = False
     supports_kv_events: bool = True
     supports_fp8_kv_cache: bool = False
+    supports_fp8_kv_per_tensor_scales: bool = False
+    supports_fp8_kv_per_head_scales: bool = False
+    supports_kv_scale_calibration: bool = False
+    supports_quantized_attention_fusion: bool = False
     supports_turboquant_kv: bool = False
     supports_rotorquant_kv: bool = False
     supports_eagle3: bool = False
@@ -25,6 +29,54 @@ class EngineRuntimeProfile:
     supports_prefix_aware_attention: bool = False
     supports_content_addressed_cache: bool = False
     supports_position_independent_cache: bool = False
+    supports_model_hot_swap: bool = False
+    supports_model_aliases: bool = False
+    supports_model_groups: bool = False
+    supports_ttl_unload: bool = False
+    supports_request_filters: bool = False
+    supports_config_reload: bool = False
+    supports_direct_model_passthrough: bool = False
+    supports_dynamic_model_loading: bool = False
+    supports_dynamic_model_unloading: bool = False
+    supports_multi_model_packing: bool = False
+    supports_multi_gpu_distribution: bool = False
+    supports_kvcached_memory_sharing: bool = False
+    supports_model_sleep_mode: bool = False
+    supports_model_move_operations: bool = False
+    supports_gpu_memory_telemetry: bool = False
+    supports_cpu_only_runtime: bool = False
+    supports_download_on_first_use: bool = False
+    supports_ollama_style_cli: bool = False
+    supports_openai_compatible_server: bool = False
+    supports_progressive_kv_compression: bool = False
+    supports_full_document_mode: bool = False
+    supports_distributed_memory_pooling: bool = False
+    supports_dynamic_multilevel_caching: bool = False
+    supports_global_metadata_management: bool = False
+    supports_capacity_management: bool = False
+    supports_prefix_matching: bool = False
+    supports_sliding_window_matching: bool = False
+    supports_kv_matching: bool = False
+    supports_two_phase_write: bool = False
+    supports_async_eviction: bool = False
+    supports_trace_replay_optimization: bool = False
+    supports_model_free_ptq: bool = False
+    supports_compressed_tensors_format: bool = False
+    supports_weight_quantization_pipeline: bool = False
+    supports_activation_quantization_pipeline: bool = False
+    supports_kv_cache_quantization_pipeline: bool = False
+    supports_attention_quantization_pipeline: bool = False
+    supports_disk_offloading_quantization: bool = False
+    supports_distributed_calibration: bool = False
+    supports_rust_native_gpu_serving: bool = False
+    supports_pure_jax_tpu_serving: bool = False
+    supports_cross_device_benchmarking: bool = False
+    supports_single_graph_capture: bool = False
+    supports_fp8_channelscale_epilogue: bool = False
+    supports_cached_ttft_reporting: bool = False
+    supports_peak_throughput_reporting: bool = False
+    supports_perplexity_reporting: bool = False
+    supports_streaming_api_server: bool = False
     storage_tiers_supported: list[str] = field(default_factory=lambda: ["Hbm", "CpuRam"])
     delegate_backend: str | None = None
     placeholder: str | None = None
@@ -68,6 +120,24 @@ class EngineRuntimeProfile:
             radix_page_size=radix_page_size,
         )
 
+    def with_fp8_kv_cache_state(
+        self,
+        *,
+        supports_fp8_kv_cache: bool,
+        supports_fp8_kv_per_tensor_scales: bool,
+        supports_fp8_kv_per_head_scales: bool,
+        supports_kv_scale_calibration: bool,
+        supports_quantized_attention_fusion: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_fp8_kv_cache=supports_fp8_kv_cache,
+            supports_fp8_kv_per_tensor_scales=supports_fp8_kv_per_tensor_scales,
+            supports_fp8_kv_per_head_scales=supports_fp8_kv_per_head_scales,
+            supports_kv_scale_calibration=supports_kv_scale_calibration,
+            supports_quantized_attention_fusion=supports_quantized_attention_fusion,
+        )
+
     def with_storage_backend_state(
         self,
         storage_backend: str | None,
@@ -89,3 +159,147 @@ class EngineRuntimeProfile:
         self, adaptive_recommendation: dict[str, object] | None
     ) -> "EngineRuntimeProfile":
         return replace(self, adaptive_recommendation=adaptive_recommendation)
+
+    def with_model_routing_state(
+        self,
+        *,
+        supports_model_hot_swap: bool,
+        supports_model_aliases: bool,
+        supports_model_groups: bool,
+        supports_ttl_unload: bool,
+        supports_request_filters: bool,
+        supports_config_reload: bool,
+        supports_direct_model_passthrough: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_model_hot_swap=supports_model_hot_swap,
+            supports_model_aliases=supports_model_aliases,
+            supports_model_groups=supports_model_groups,
+            supports_ttl_unload=supports_ttl_unload,
+            supports_request_filters=supports_request_filters,
+            supports_config_reload=supports_config_reload,
+            supports_direct_model_passthrough=supports_direct_model_passthrough,
+        )
+
+    def with_model_packing_state(
+        self,
+        *,
+        supports_dynamic_model_loading: bool,
+        supports_dynamic_model_unloading: bool,
+        supports_multi_model_packing: bool,
+        supports_multi_gpu_distribution: bool,
+        supports_kvcached_memory_sharing: bool,
+        supports_model_sleep_mode: bool,
+        supports_model_move_operations: bool,
+        supports_gpu_memory_telemetry: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_dynamic_model_loading=supports_dynamic_model_loading,
+            supports_dynamic_model_unloading=supports_dynamic_model_unloading,
+            supports_multi_model_packing=supports_multi_model_packing,
+            supports_multi_gpu_distribution=supports_multi_gpu_distribution,
+            supports_kvcached_memory_sharing=supports_kvcached_memory_sharing,
+            supports_model_sleep_mode=supports_model_sleep_mode,
+            supports_model_move_operations=supports_model_move_operations,
+            supports_gpu_memory_telemetry=supports_gpu_memory_telemetry,
+        )
+
+    def with_compact_runtime_state(
+        self,
+        *,
+        supports_cpu_only_runtime: bool,
+        supports_download_on_first_use: bool,
+        supports_ollama_style_cli: bool,
+        supports_openai_compatible_server: bool,
+        supports_progressive_kv_compression: bool,
+        supports_full_document_mode: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_cpu_only_runtime=supports_cpu_only_runtime,
+            supports_download_on_first_use=supports_download_on_first_use,
+            supports_ollama_style_cli=supports_ollama_style_cli,
+            supports_openai_compatible_server=supports_openai_compatible_server,
+            supports_progressive_kv_compression=supports_progressive_kv_compression,
+            supports_full_document_mode=supports_full_document_mode,
+        )
+
+    def with_storage_orchestration_state(
+        self,
+        *,
+        supports_distributed_memory_pooling: bool,
+        supports_dynamic_multilevel_caching: bool,
+        supports_global_metadata_management: bool,
+        supports_capacity_management: bool,
+        supports_prefix_matching: bool,
+        supports_sliding_window_matching: bool,
+        supports_kv_matching: bool,
+        supports_two_phase_write: bool,
+        supports_async_eviction: bool,
+        supports_trace_replay_optimization: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_distributed_memory_pooling=supports_distributed_memory_pooling,
+            supports_dynamic_multilevel_caching=supports_dynamic_multilevel_caching,
+            supports_global_metadata_management=supports_global_metadata_management,
+            supports_capacity_management=supports_capacity_management,
+            supports_prefix_matching=supports_prefix_matching,
+            supports_sliding_window_matching=supports_sliding_window_matching,
+            supports_kv_matching=supports_kv_matching,
+            supports_two_phase_write=supports_two_phase_write,
+            supports_async_eviction=supports_async_eviction,
+            supports_trace_replay_optimization=supports_trace_replay_optimization,
+        )
+
+    def with_quantization_pipeline_state(
+        self,
+        *,
+        supports_model_free_ptq: bool,
+        supports_compressed_tensors_format: bool,
+        supports_weight_quantization_pipeline: bool,
+        supports_activation_quantization_pipeline: bool,
+        supports_kv_cache_quantization_pipeline: bool,
+        supports_attention_quantization_pipeline: bool,
+        supports_disk_offloading_quantization: bool,
+        supports_distributed_calibration: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_model_free_ptq=supports_model_free_ptq,
+            supports_compressed_tensors_format=supports_compressed_tensors_format,
+            supports_weight_quantization_pipeline=supports_weight_quantization_pipeline,
+            supports_activation_quantization_pipeline=supports_activation_quantization_pipeline,
+            supports_kv_cache_quantization_pipeline=supports_kv_cache_quantization_pipeline,
+            supports_attention_quantization_pipeline=supports_attention_quantization_pipeline,
+            supports_disk_offloading_quantization=supports_disk_offloading_quantization,
+            supports_distributed_calibration=supports_distributed_calibration,
+        )
+
+    def with_serving_benchmark_state(
+        self,
+        *,
+        supports_rust_native_gpu_serving: bool,
+        supports_pure_jax_tpu_serving: bool,
+        supports_cross_device_benchmarking: bool,
+        supports_single_graph_capture: bool,
+        supports_fp8_channelscale_epilogue: bool,
+        supports_cached_ttft_reporting: bool,
+        supports_peak_throughput_reporting: bool,
+        supports_perplexity_reporting: bool,
+        supports_streaming_api_server: bool,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_rust_native_gpu_serving=supports_rust_native_gpu_serving,
+            supports_pure_jax_tpu_serving=supports_pure_jax_tpu_serving,
+            supports_cross_device_benchmarking=supports_cross_device_benchmarking,
+            supports_single_graph_capture=supports_single_graph_capture,
+            supports_fp8_channelscale_epilogue=supports_fp8_channelscale_epilogue,
+            supports_cached_ttft_reporting=supports_cached_ttft_reporting,
+            supports_peak_throughput_reporting=supports_peak_throughput_reporting,
+            supports_perplexity_reporting=supports_perplexity_reporting,
+            supports_streaming_api_server=supports_streaming_api_server,
+        )

@@ -70,7 +70,7 @@ Global:
 
 - `GFXATOM_DONOR_FEATURES=0|1`
 - `GFXATOM_KV_POLICY_MODE=strict|fallback`
-- `GFXATOM_KV_POLICY_FAMILY=baseline|ratequant|deltak|wobble|qaq|nautilus`
+- `GFXATOM_KV_POLICY_FAMILY=baseline|ratequant|deltak|wobble|qaq|nautilus|rkv`
 
 Per-feature:
 
@@ -79,6 +79,7 @@ Per-feature:
 - `GFXATOM_KV_WOBBLE=0|1`
 - `GFXATOM_KV_QAQ=0|1`
 - `GFXATOM_KV_NAUTILUS=0|1`
+- `GFXATOM_KV_RKV=0|1`
 
 ## 4) Fail-Closed Behavior
 

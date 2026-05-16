@@ -49,3 +49,150 @@ def test_python_runtime_profile_adaptive_recommendation_helper():
     payload = profile.to_dict()
     assert payload["adaptive_recommendation"] is not None
     assert payload["adaptive_recommendation"]["family"] == "ratequant"
+
+
+def test_python_runtime_profile_fp8_kv_cache_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_fp8_kv_cache_state(
+        supports_fp8_kv_cache=True,
+        supports_fp8_kv_per_tensor_scales=True,
+        supports_fp8_kv_per_head_scales=False,
+        supports_kv_scale_calibration=True,
+        supports_quantized_attention_fusion=False,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_fp8_kv_cache"] is True
+    assert payload["supports_fp8_kv_per_tensor_scales"] is True
+    assert payload["supports_fp8_kv_per_head_scales"] is False
+    assert payload["supports_kv_scale_calibration"] is True
+    assert payload["supports_quantized_attention_fusion"] is False
+
+
+def test_python_runtime_profile_model_routing_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_model_routing_state(
+        supports_model_hot_swap=True,
+        supports_model_aliases=True,
+        supports_model_groups=False,
+        supports_ttl_unload=True,
+        supports_request_filters=False,
+        supports_config_reload=True,
+        supports_direct_model_passthrough=False,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_model_hot_swap"] is True
+    assert payload["supports_model_aliases"] is True
+    assert payload["supports_ttl_unload"] is True
+    assert payload["supports_config_reload"] is True
+    assert payload["supports_direct_model_passthrough"] is False
+
+
+def test_python_runtime_profile_model_packing_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_model_packing_state(
+        supports_dynamic_model_loading=True,
+        supports_dynamic_model_unloading=True,
+        supports_multi_model_packing=True,
+        supports_multi_gpu_distribution=True,
+        supports_kvcached_memory_sharing=True,
+        supports_model_sleep_mode=True,
+        supports_model_move_operations=False,
+        supports_gpu_memory_telemetry=True,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_dynamic_model_loading"] is True
+    assert payload["supports_multi_model_packing"] is True
+    assert payload["supports_kvcached_memory_sharing"] is True
+    assert payload["supports_model_move_operations"] is False
+    assert payload["supports_gpu_memory_telemetry"] is True
+
+
+def test_python_runtime_profile_compact_runtime_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_compact_runtime_state(
+        supports_cpu_only_runtime=True,
+        supports_download_on_first_use=True,
+        supports_ollama_style_cli=True,
+        supports_openai_compatible_server=True,
+        supports_progressive_kv_compression=True,
+        supports_full_document_mode=False,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_cpu_only_runtime"] is True
+    assert payload["supports_download_on_first_use"] is True
+    assert payload["supports_ollama_style_cli"] is True
+    assert payload["supports_openai_compatible_server"] is True
+    assert payload["supports_progressive_kv_compression"] is True
+    assert payload["supports_full_document_mode"] is False
+
+
+def test_python_runtime_profile_storage_orchestration_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_storage_orchestration_state(
+        supports_distributed_memory_pooling=True,
+        supports_dynamic_multilevel_caching=True,
+        supports_global_metadata_management=True,
+        supports_capacity_management=True,
+        supports_prefix_matching=True,
+        supports_sliding_window_matching=False,
+        supports_kv_matching=True,
+        supports_two_phase_write=True,
+        supports_async_eviction=True,
+        supports_trace_replay_optimization=False,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_distributed_memory_pooling"] is True
+    assert payload["supports_dynamic_multilevel_caching"] is True
+    assert payload["supports_global_metadata_management"] is True
+    assert payload["supports_capacity_management"] is True
+    assert payload["supports_prefix_matching"] is True
+    assert payload["supports_kv_matching"] is True
+    assert payload["supports_two_phase_write"] is True
+    assert payload["supports_async_eviction"] is True
+
+
+def test_python_runtime_profile_quantization_pipeline_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_quantization_pipeline_state(
+        supports_model_free_ptq=True,
+        supports_compressed_tensors_format=True,
+        supports_weight_quantization_pipeline=True,
+        supports_activation_quantization_pipeline=True,
+        supports_kv_cache_quantization_pipeline=True,
+        supports_attention_quantization_pipeline=False,
+        supports_disk_offloading_quantization=True,
+        supports_distributed_calibration=True,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_model_free_ptq"] is True
+    assert payload["supports_compressed_tensors_format"] is True
+    assert payload["supports_weight_quantization_pipeline"] is True
+    assert payload["supports_activation_quantization_pipeline"] is True
+    assert payload["supports_kv_cache_quantization_pipeline"] is True
+    assert payload["supports_disk_offloading_quantization"] is True
+    assert payload["supports_distributed_calibration"] is True
+
+
+def test_python_runtime_profile_serving_benchmark_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_serving_benchmark_state(
+        supports_rust_native_gpu_serving=True,
+        supports_pure_jax_tpu_serving=True,
+        supports_cross_device_benchmarking=True,
+        supports_single_graph_capture=True,
+        supports_fp8_channelscale_epilogue=True,
+        supports_cached_ttft_reporting=True,
+        supports_peak_throughput_reporting=True,
+        supports_perplexity_reporting=False,
+        supports_streaming_api_server=True,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_rust_native_gpu_serving"] is True
+    assert payload["supports_pure_jax_tpu_serving"] is True
+    assert payload["supports_cross_device_benchmarking"] is True
+    assert payload["supports_single_graph_capture"] is True
+    assert payload["supports_fp8_channelscale_epilogue"] is True
+    assert payload["supports_cached_ttft_reporting"] is True
+    assert payload["supports_peak_throughput_reporting"] is True
+    assert payload["supports_perplexity_reporting"] is False
+    assert payload["supports_streaming_api_server"] is True
