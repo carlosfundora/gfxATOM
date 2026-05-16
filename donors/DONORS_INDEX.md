@@ -27,6 +27,14 @@ Archived after successful extraction:
 - `vLLMTurboQuantKVCacheCPU`
 - `vllm_backend`
 - `wobble-quant-cache`
+- `R-KV`
+- `ik_llama.cpp`
+- `llama-swap`
+- `llm-compressor`
+- `quant.cpp`
+- `rvllm`
+- `sardeenz`
+- `tair-kvcache`
 
 ## Completed assimilations since the last index refresh
 
