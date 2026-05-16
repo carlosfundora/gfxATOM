@@ -1,4 +1,5 @@
 use rs_autoquant_policy::{AutoQuantFingerprint, AutoQuantPolicy};
+use rs_atom_engine_profile::EngineRuntimeProfile;
 use rs_kv_codec_adapters::CodecAdapterRegistry;
 use rs_kv_quant_contracts::{normalize_codec_alias, KvCodec, KvPolicyMode, KvQuantPolicy};
 use serde::{Deserialize, Serialize};
@@ -76,6 +77,28 @@ pub fn run_validation_suite() -> ValidationReport {
         name: "kv_quant_policy_shape".into(),
         passed: kv_policy.codec == KvCodec::Tq4,
         note: "shared KV quant contract reachable".into(),
+    });
+
+    let runtime_profile = EngineRuntimeProfile::default().with_delegate_backend("aiter");
+    cases.push(ValidationCase {
+        name: "atom_runtime_profile_shape".into(),
+        passed: runtime_profile.supports_atom_backend
+            && runtime_profile.supports_atom_attention
+            && runtime_profile.supports_atom_rocm_telemetry
+            && runtime_profile.supports_atom_fallback
+            && runtime_profile.delegate_backend.as_deref() == Some("aiter")
+            && runtime_profile.placeholder.is_none(),
+        note: serde_json::to_string(&runtime_profile).unwrap(),
+    });
+
+    cases.push(ValidationCase {
+        name: "radix_runtime_profile_defaults".into(),
+        passed: runtime_profile.radix_cache_kind.is_none()
+            && runtime_profile.radix_total_tokens.is_none()
+            && runtime_profile.radix_protected_tokens.is_none()
+            && runtime_profile.radix_evictable_tokens.is_none()
+            && runtime_profile.radix_page_size.is_none(),
+        note: "radix cache state placeholder is empty until runtime wiring lands".into(),
     });
 
     let passed = cases.iter().all(|case| case.passed);
