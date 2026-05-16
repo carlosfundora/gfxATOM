@@ -97,8 +97,30 @@ pub fn run_validation_suite() -> ValidationReport {
             && runtime_profile.radix_total_tokens.is_none()
             && runtime_profile.radix_protected_tokens.is_none()
             && runtime_profile.radix_evictable_tokens.is_none()
-            && runtime_profile.radix_page_size.is_none(),
+            && runtime_profile.radix_page_size.is_none()
+            && runtime_profile.storage_backend.is_none()
+            && runtime_profile.storage_supports_stats.is_none()
+            && runtime_profile.storage_supports_zero_copy.is_none()
+            && runtime_profile.storage_layout_mode.is_none()
+            && runtime_profile.storage_transfer_mem_type.is_none(),
         note: "radix cache state placeholder is empty until runtime wiring lands".into(),
+    });
+
+    let storage_profile = EngineRuntimeProfile::default().with_storage_backend_state(
+        "mooncake",
+        true,
+        true,
+        "page_first_direct",
+        Some("FILE".to_string()),
+    );
+    cases.push(ValidationCase {
+        name: "storage_runtime_profile_shape".into(),
+        passed: storage_profile.storage_backend.as_deref() == Some("mooncake")
+            && storage_profile.storage_supports_stats == Some(true)
+            && storage_profile.storage_supports_zero_copy == Some(true)
+            && storage_profile.storage_layout_mode.as_deref() == Some("page_first_direct")
+            && storage_profile.storage_transfer_mem_type.as_deref() == Some("FILE"),
+        note: serde_json::to_string(&storage_profile).unwrap(),
     });
 
     let passed = cases.iter().all(|case| case.passed);

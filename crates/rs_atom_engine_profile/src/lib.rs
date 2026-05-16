@@ -14,6 +14,11 @@ pub struct EngineRuntimeProfile {
     pub radix_protected_tokens: Option<u64>,
     pub radix_evictable_tokens: Option<u64>,
     pub radix_page_size: Option<u32>,
+    pub storage_backend: Option<String>,
+    pub storage_supports_stats: Option<bool>,
+    pub storage_supports_zero_copy: Option<bool>,
+    pub storage_layout_mode: Option<String>,
+    pub storage_transfer_mem_type: Option<String>,
 }
 
 impl Default for EngineRuntimeProfile {
@@ -31,6 +36,11 @@ impl Default for EngineRuntimeProfile {
             radix_protected_tokens: None,
             radix_evictable_tokens: None,
             radix_page_size: None,
+            storage_backend: None,
+            storage_supports_stats: None,
+            storage_supports_zero_copy: None,
+            storage_layout_mode: None,
+            storage_transfer_mem_type: None,
         }
     }
 }
@@ -61,6 +71,22 @@ impl EngineRuntimeProfile {
         self.radix_page_size = Some(radix_page_size);
         self
     }
+
+    pub fn with_storage_backend_state(
+        mut self,
+        storage_backend: impl Into<String>,
+        storage_supports_stats: bool,
+        storage_supports_zero_copy: bool,
+        storage_layout_mode: impl Into<String>,
+        storage_transfer_mem_type: Option<String>,
+    ) -> Self {
+        self.storage_backend = Some(storage_backend.into());
+        self.storage_supports_stats = Some(storage_supports_stats);
+        self.storage_supports_zero_copy = Some(storage_supports_zero_copy);
+        self.storage_layout_mode = Some(storage_layout_mode.into());
+        self.storage_transfer_mem_type = storage_transfer_mem_type;
+        self
+    }
 }
 
 #[cfg(test)]
@@ -82,6 +108,11 @@ mod tests {
         assert_eq!(profile.radix_protected_tokens, None);
         assert_eq!(profile.radix_evictable_tokens, None);
         assert_eq!(profile.radix_page_size, None);
+        assert_eq!(profile.storage_backend, None);
+        assert_eq!(profile.storage_supports_stats, None);
+        assert_eq!(profile.storage_supports_zero_copy, None);
+        assert_eq!(profile.storage_layout_mode, None);
+        assert_eq!(profile.storage_transfer_mem_type, None);
     }
 
     #[test]
@@ -110,5 +141,24 @@ mod tests {
         assert_eq!(profile.radix_protected_tokens, Some(256));
         assert_eq!(profile.radix_evictable_tokens, Some(768));
         assert_eq!(profile.radix_page_size, Some(16));
+    }
+
+    #[test]
+    fn storage_backend_state_helper_sets_storage_state() {
+        let profile = EngineRuntimeProfile::default().with_storage_backend_state(
+            "mooncake",
+            true,
+            true,
+            "page_first_direct",
+            Some("FILE".to_string()),
+        );
+        assert_eq!(profile.storage_backend.as_deref(), Some("mooncake"));
+        assert_eq!(profile.storage_supports_stats, Some(true));
+        assert_eq!(profile.storage_supports_zero_copy, Some(true));
+        assert_eq!(
+            profile.storage_layout_mode.as_deref(),
+            Some("page_first_direct")
+        );
+        assert_eq!(profile.storage_transfer_mem_type.as_deref(), Some("FILE"));
     }
 }

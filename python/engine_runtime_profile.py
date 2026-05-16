@@ -15,6 +15,11 @@ class EngineRuntimeProfile:
     radix_protected_tokens: int | None = None
     radix_evictable_tokens: int | None = None
     radix_page_size: int | None = None
+    storage_backend: str | None = None
+    storage_supports_stats: bool | None = None
+    storage_supports_zero_copy: bool | None = None
+    storage_layout_mode: str | None = None
+    storage_transfer_mem_type: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -40,4 +45,21 @@ class EngineRuntimeProfile:
             radix_protected_tokens=radix_protected_tokens,
             radix_evictable_tokens=radix_evictable_tokens,
             radix_page_size=radix_page_size,
+        )
+
+    def with_storage_backend_state(
+        self,
+        storage_backend: str | None,
+        storage_supports_stats: bool | None,
+        storage_supports_zero_copy: bool | None,
+        storage_layout_mode: str | None,
+        storage_transfer_mem_type: str | None = None,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            storage_backend=storage_backend,
+            storage_supports_stats=storage_supports_stats,
+            storage_supports_zero_copy=storage_supports_zero_copy,
+            storage_layout_mode=storage_layout_mode,
+            storage_transfer_mem_type=storage_transfer_mem_type,
         )
