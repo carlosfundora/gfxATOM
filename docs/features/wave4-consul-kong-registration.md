@@ -9,7 +9,7 @@ Register the new gfxATOM engine/API surfaces under governance-compliant service 
 Updated service specs:
 
 - `/home/local/ai/consul/services/inference.json`
-  - `gfxatom-turbo` on `40013`
+  - `gfxatom-rust` on `40013`
 - `/home/local/ai/consul/services/api.json`
   - `api-gfxatom` on `9314`
 
@@ -28,7 +28,7 @@ Refreshed generated port map via:
 
 New variables:
 
-- `PORT_GFXATOM_TURBO=40013`
+- `PORT_GFXATOM_RUST=40013`
 - `PORT_API_GFXATOM=9314`
 
 ## Kong route integration
@@ -39,4 +39,3 @@ Updated declarative gateway config:
   - service: `api-gfxatom`
   - route path: `/api/gfxatom`
   - upstream: `http://host.docker.internal:9314`
-
