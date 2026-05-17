@@ -21,6 +21,7 @@ import torch.nn.functional as F
 
 try:
     import rs_codec
+
     _HAS_RS_CODEC = True
 except ImportError:
     _HAS_RS_CODEC = False
@@ -115,7 +116,11 @@ class ChatterboxEngine:
         arch = config.architectures[0] if config.architectures else "Unknown"
         logger.info(
             "Loading Chatterbox %s backbone (%s) from %s on %s (%s)",
-            self.variant, arch, self.backbone_dir, self.device, self.dtype,
+            self.variant,
+            arch,
+            self.backbone_dir,
+            self.device,
+            self.dtype,
         )
 
         model = AutoModelForCausalLM.from_pretrained(
@@ -130,7 +135,8 @@ class ChatterboxEngine:
         params_m = sum(p.numel() for p in model.parameters()) / 1e6
         logger.info(
             "Backbone loaded: %.0fM params, %.1fs, VRAM=%.0fMB",
-            params_m, elapsed,
+            params_m,
+            elapsed,
             torch.cuda.memory_allocated(self.device) / 1e6,
         )
 
@@ -189,21 +195,30 @@ class ChatterboxEngine:
         t2 = time.time()
         if self._use_gpu_backbone:
             speech_tokens = self._generate_gpu(
-                prep, max_tokens, repetition_penalty, temperature,
+                prep,
+                max_tokens,
+                repetition_penalty,
+                temperature,
             )
         else:
             speech_tokens = self._generate_onnx_cpu(
-                prep, ref_data, max_tokens, repetition_penalty, exaggeration,
+                prep,
+                ref_data,
+                max_tokens,
+                repetition_penalty,
+                exaggeration,
             )
         metrics["generate_sec"] = time.time() - t2
         metrics["num_tokens"] = speech_tokens.shape[1]
-        metrics["tok_per_sec"] = metrics["num_tokens"] / max(metrics["generate_sec"], 0.001)
+        metrics["tok_per_sec"] = metrics["num_tokens"] / max(
+            metrics["generate_sec"], 0.001
+        )
 
         # 4. Decode to audio (CPU)
         t3 = time.time()
         wav = self.service.decode_speech(speech_tokens, ref_data)
         metrics["decode_sec"] = time.time() - t3
-        
+
         # 5. Apply AGC and Soft Compression (CPU via Rust)
         t4 = time.time()
         if _HAS_RS_CODEC:
@@ -215,7 +230,16 @@ class ChatterboxEngine:
         metrics["postprocess_sec"] = time.time() - t4
 
         metrics["audio_duration"] = len(wav) / SAMPLE_RATE
-        metrics["total_sec"] = sum(metrics[k] for k in ["encode_sec", "prepare_sec", "generate_sec", "decode_sec", "postprocess_sec"])
+        metrics["total_sec"] = sum(
+            metrics[k]
+            for k in [
+                "encode_sec",
+                "prepare_sec",
+                "generate_sec",
+                "decode_sec",
+                "postprocess_sec",
+            ]
+        )
         metrics["rtf"] = metrics["total_sec"] / max(metrics["audio_duration"], 0.001)
 
         return wav, metrics
@@ -272,11 +296,11 @@ class ChatterboxEngine:
                 # Apply top-k filtering
                 top_k = 50
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                logits[logits < v[:, [-1]]] = -float('Inf')
-                
+                logits[logits < v[:, [-1]]] = -float("Inf")
+
                 probs = F.softmax(logits, dim=-1)
                 next_token = torch.multinomial(probs, num_samples=1)
-                
+
             generate_tokens = torch.cat([generate_tokens, next_token], dim=-1)
 
             if (next_token.flatten() == STOP_SPEECH_TOKEN).all():
@@ -310,7 +334,9 @@ class ChatterboxEngine:
 
         # Detect KV dtype
         kv_inputs = [i for i in llm.get_inputs() if "past_key_values" in i.name]
-        kv_dtype = np.float16 if kv_inputs and "float16" in kv_inputs[0].type else np.float32
+        kv_dtype = (
+            np.float16 if kv_inputs and "float16" in kv_inputs[0].type else np.float32
+        )
 
         # Check if LLM needs position_ids
         llm_input_names = {i.name for i in llm.get_inputs()}
@@ -337,6 +363,7 @@ class ChatterboxEngine:
         }
 
         next_token = None
+        seq_len = inputs_embeds.shape[1]
         for i in range(max_tokens):
             if i == 0:
                 cur_embeds = inputs_embeds
