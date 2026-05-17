@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "python"))
 
 from tiered_kv_cache_manager import TieredKvCacheManager, CacheTier, BlockMetadata
 from sglang_backend_adapter import TieredKvCacheAdapter
+from kv_quant_contracts import UniversalKvStage
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -151,6 +152,76 @@ class TestTieredKvCacheManager:
         fp32_bytes = data.numel() * 4
         assert metadata.size_bytes < fp32_bytes
         assert metadata.codec_name in {"python_packed_rq3", "rust_planar3"}
+
+    def test_stage_metadata_initialized_for_hot_block(self):
+        """High-importance fresh blocks should start on hot rotor stage."""
+        data = torch.randn(16, 1024)
+        block_id = self.cache_mgr.allocate_block(
+            request_id="req_stage_hot",
+            layer_idx=0,
+            seq_start=0,
+            seq_end=16,
+            data=data,
+            importance_score=0.95,
+        )
+        metadata = self.cache_mgr.gpu_blocks[block_id]
+        assert metadata.stage == UniversalKvStage.hot_rotor
+        assert metadata.block_header is not None
+        assert metadata.block_header.stage == UniversalKvStage.hot_rotor
+        assert metadata.block_header.should_apply_turbo_residual() is False
+
+    def test_stage_transitions_hot_warm_cold(self):
+        """Stage policy should move metadata through hot/warm/cold with age."""
+        data = torch.randn(16, 1024)
+        block_id = self.cache_mgr.allocate_block(
+            request_id="req_stage_shift",
+            layer_idx=0,
+            seq_start=0,
+            seq_end=16,
+            data=data,
+            importance_score=0.9,
+        )
+        metadata = self.cache_mgr.gpu_blocks[block_id]
+        assert metadata.stage == UniversalKvStage.hot_rotor
+
+        self.cache_mgr._stage_tick = self.cache_mgr.placement_policy.warm_age_steps + 5
+        metadata.last_stage_tick = 0
+        warm_decoded = self.cache_mgr.access_block(block_id)
+        assert metadata.stage == UniversalKvStage.warm_rotor_polar
+        assert metadata.warm_reference_payload is not None
+        assert metadata.warm_reference_format == "warm_rotor_polar_ref_v1"
+        assert metadata.stage_materialization_source == "warm_rotor_polar_reference"
+        assert tuple(warm_decoded.shape) == tuple(data.shape)
+
+        self.cache_mgr._stage_tick = self.cache_mgr.placement_policy.cold_age_steps + 20
+        metadata.last_stage_tick = 0
+        cold_decoded = self.cache_mgr.access_block(block_id)
+        assert metadata.stage == UniversalKvStage.cold_turbo_residual
+        assert metadata.block_header is not None
+        assert metadata.block_header.should_apply_turbo_residual() is True
+        assert metadata.cold_reference_payload is not None
+        assert metadata.cold_reference_format == "cold_turbo_residual_ref_v1"
+        assert metadata.stage_materialization_source == "cold_turbo_residual_reference"
+        assert tuple(cold_decoded.shape) == tuple(data.shape)
+
+    def test_stage_metadata_integrity_on_cold_ram_block(self):
+        """Cold-stage blocks should preserve stage/header metadata integrity in RAM."""
+        data = torch.randn(16, 1024)
+        block_id = self.cache_mgr.allocate_block(
+            request_id="req_stage_cold",
+            layer_idx=0,
+            seq_start=0,
+            seq_end=16,
+            data=data,
+            importance_score=0.1,
+        )
+        metadata = self.cache_mgr.ram_blocks.get(block_id) or self.cache_mgr.gpu_blocks[block_id]
+        assert metadata.stage == UniversalKvStage.cold_turbo_residual
+        assert metadata.block_header is not None
+        assert metadata.block_header.stage == metadata.stage
+        assert metadata.block_header.should_apply_turbo_residual() is True
+        assert metadata.cold_reference_payload is not None
+        assert metadata.cold_reference_format == "cold_turbo_residual_ref_v1"
     
     def test_access_block_ram_tier_miss(self):
         """Accessing block on RAM tier records miss (latency penalty)."""
@@ -227,7 +298,7 @@ class TestTieredKvCacheManager:
             seq_start=0,
             seq_end=16,
             data=data_cold,
-            importance_score=0.1,
+            importance_score=0.4,  # warm-stage so it remains eligible for GPU eviction logic
         )
         
         # Make cold block old by setting last_accessed to past
@@ -373,7 +444,7 @@ class TestTwoTierScenarios:
                 request_id="long_context_req",
                 layer_idx=0,
                 k_cache=k_cache,
-                importance_score=1.0 - (block_num * 0.05),  # Recent blocks more important
+                importance_score=max(0.0, 1.0 - (block_num * 0.1)),  # tail blocks become cold
             )
             block_ids.append(block_id)
         
@@ -433,7 +504,7 @@ class TestTwoTierScenarios:
             seq_start=0,
             seq_end=16,
             data=torch.randn(16, 1024),
-            importance_score=0.01,  # Very unimportant
+            importance_score=0.4,  # Warm-tier for GPU eviction path assertions
         )
         
         # Age the blocks (make noise oldest)

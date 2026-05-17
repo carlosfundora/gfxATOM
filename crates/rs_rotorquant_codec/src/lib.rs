@@ -414,3 +414,4 @@ fn rs_rotorquant_codec(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 pub mod hybrid;
+pub mod stage1_hip_scaffold;

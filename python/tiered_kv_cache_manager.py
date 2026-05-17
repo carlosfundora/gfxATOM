@@ -19,6 +19,7 @@ Strategy:
 
 import time
 import logging
+import struct
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 from collections import defaultdict
@@ -27,6 +28,13 @@ import heapq
 
 import torch
 import numpy as np
+
+from kv_quant_contracts import (
+    KvCodec,
+    UniversalKvBlockHeaderV1,
+    UniversalKvPlacementPolicy,
+    UniversalKvStage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +66,15 @@ class BlockMetadata:
     quant_scale: float = 1.0
     rotor_dim: int = 0
     used_rust_codec: bool = False
+    stage: UniversalKvStage = UniversalKvStage.hot_rotor
+    stage_age_steps: int = 0
+    last_stage_tick: int = 0
+    block_header: UniversalKvBlockHeaderV1 | None = None
+    warm_reference_payload: bytes | None = None
+    warm_reference_format: str | None = None
+    cold_reference_payload: bytes | None = None
+    cold_reference_format: str | None = None
+    stage_materialization_source: str = "hot_rotor_payload"
 
 
 @dataclass
@@ -90,12 +107,14 @@ class TieredKvCacheManager:
         block_size: int = 16,  # values per block
         block_metadata_bytes: int = 2,  # rotation index + scale
         prefer_rust_rotor: bool = True,
+        placement_policy: UniversalKvPlacementPolicy | None = None,
     ):
         self.gpu_tier_capacity = gpu_tier_capacity_mb * 1024 * 1024  # bytes
         self.ram_tier_capacity = ram_tier_capacity_mb * 1024 * 1024  # bytes
         self.block_size = block_size
         self.block_metadata_bytes = block_metadata_bytes
         self.prefer_rust_rotor = prefer_rust_rotor
+        self.placement_policy = placement_policy or UniversalKvPlacementPolicy()
         
         # Tier storage (block_id → BlockMetadata)
         self.gpu_blocks: Dict[int, BlockMetadata] = {}
@@ -122,6 +141,7 @@ class TieredKvCacheManager:
         
         # Global block counter
         self._next_block_id = 0
+        self._stage_tick = 0
         self._rust_rotor_codec = self._try_load_rust_rotor_codec()
         
         logger.info(
@@ -148,10 +168,16 @@ class TieredKvCacheManager:
         """
         block_id = self._next_block_id
         self._next_block_id += 1
+        stage_tick = self._advance_stage_tick()
         
         # Compress to 3-bit RotorQuant format
         # Assume data is shape (seq_len, num_heads * head_dim)
         compressed_data, compressed_size, codec_meta = self._compress_rotor(data)
+        initial_stage = self.placement_policy.select_stage(
+            importance=importance_score,
+            age_steps=0,
+            gpu_utilization_pct=self._gpu_utilization_ratio(),
+        )
         
         # Create metadata
         metadata = BlockMetadata(
@@ -171,54 +197,37 @@ class TieredKvCacheManager:
             quant_scale=codec_meta["quant_scale"],
             rotor_dim=codec_meta["rotor_dim"],
             used_rust_codec=codec_meta["used_rust_codec"],
+            stage=initial_stage,
+            stage_age_steps=0,
+            last_stage_tick=stage_tick,
+            block_header=self._build_block_header(
+                stage=initial_stage,
+                quant_scale=codec_meta["quant_scale"],
+                used_rust_codec=codec_meta["used_rust_codec"],
+            ),
         )
-        
-        # Attempt to place on GPU tier first
-        if self._gpu_tier_has_space(compressed_size):
-            self.gpu_blocks[block_id] = metadata
-            self.gpu_block_data[block_id] = compressed_data
-            self.block_to_tier[block_id] = CacheTier.GPU_ROTOR
-            self.stats[CacheTier.GPU_ROTOR].blocks_count += 1
-            self.stats[CacheTier.GPU_ROTOR].total_bytes += compressed_size
-            
-            logger.debug(
-                f"Block {block_id} allocated to GPU tier "
-                f"(req={request_id}, layer={layer_idx}, size={compressed_size}B)"
-            )
-        else:
-            # GPU full: try RAM tier directly (don't evict from GPU)
-            if self._ram_tier_has_space(compressed_size):
-                # Spill directly to RAM
-                self.ram_blocks[block_id] = metadata
-                self.ram_block_data[block_id] = (
-                    compressed_data.cpu().numpy().tobytes()
-                    if isinstance(compressed_data, torch.Tensor)
-                    else compressed_data
-                )
-                metadata.current_tier = CacheTier.RAM_TURBO
-                self.block_to_tier[block_id] = CacheTier.RAM_TURBO
-                self.stats[CacheTier.RAM_TURBO].blocks_count += 1
-                self.stats[CacheTier.RAM_TURBO].total_bytes += compressed_size
-                logger.debug(
-                    f"Block {block_id} allocated to RAM tier (spill, size={compressed_size}B)"
-                )
-            else:
-                # Both tiers full: try aggressive eviction from GPU
+        self._ensure_stage_reference_payload(
+            metadata,
+            source_tensor=data.detach().float().cpu(),
+        )
+
+        prefer_gpu = metadata.stage != UniversalKvStage.cold_turbo_residual
+        if prefer_gpu:
+            if not self._place_block_in_gpu(block_id, metadata, compressed_data):
                 evicted_from_gpu = self._evict_to_make_space(
                     compressed_size, target_tier=CacheTier.GPU_ROTOR
                 )
-                
-                if evicted_from_gpu >= 1 and self._gpu_tier_has_space(compressed_size):
-                    # Retry GPU after eviction
-                    self.gpu_blocks[block_id] = metadata
-                    self.gpu_block_data[block_id] = compressed_data
-                    self.block_to_tier[block_id] = CacheTier.GPU_ROTOR
-                    self.stats[CacheTier.GPU_ROTOR].blocks_count += 1
-                    self.stats[CacheTier.GPU_ROTOR].total_bytes += compressed_size
-                    logger.debug(
-                        f"Block {block_id} allocated to GPU after evicting {evicted_from_gpu} blocks"
-                    )
-                else:
+                if evicted_from_gpu >= 1:
+                    self._place_block_in_gpu(block_id, metadata, compressed_data)
+                if block_id not in self.block_to_tier:
+                    if not self._place_block_in_ram(block_id, metadata, compressed_data):
+                        logger.warning(
+                            f"Block {block_id} allocation failed: both tiers full"
+                        )
+                        raise MemoryError("Both GPU and RAM tiers are full")
+        else:
+            if not self._place_block_in_ram(block_id, metadata, compressed_data):
+                if not self._place_block_in_gpu(block_id, metadata, compressed_data):
                     logger.warning(f"Block {block_id} allocation failed: both tiers full")
                     raise MemoryError("Both GPU and RAM tiers are full")
         
@@ -240,24 +249,35 @@ class TieredKvCacheManager:
         if tier == CacheTier.GPU_ROTOR:
             # Cache hit on GPU
             metadata = self.gpu_blocks[block_id]
+            self._refresh_block_stage(metadata)
             metadata.last_accessed = time.time()
             metadata.access_count += 1
             self.stats[CacheTier.GPU_ROTOR].hits += 1
             
             # Return decompressed data
-            return self._decompress_rotor(self.gpu_block_data[block_id], metadata)
+            return self._materialize_block_tensor(
+                metadata, compressed_data=self.gpu_block_data[block_id]
+            )
         
         elif tier == CacheTier.RAM_TURBO:
             # Cache miss (spill): bring from RAM, possibly promote to GPU
             metadata = self.ram_blocks[block_id]
-            
-            # Check if this block should be promoted (hot + importance-weighted)
-            if metadata.access_count > 2 and metadata.importance_score > 0.7:
-                # Promote to GPU if space available
-                if self._gpu_tier_has_space(metadata.size_bytes):
-                    self._promote_to_gpu(block_id)
-                    self.stats[CacheTier.RAM_TURBO].swaps_in += 1
-                    logger.debug(f"Block {block_id} promoted RAM → GPU (hot, access_count={metadata.access_count})")
+            self._refresh_block_stage(metadata)
+
+            if (
+                metadata.stage == UniversalKvStage.hot_rotor
+                and self._gpu_tier_has_space(metadata.size_bytes)
+            ):
+                self._promote_to_gpu(block_id)
+                self.stats[CacheTier.RAM_TURBO].swaps_in += 1
+                logger.debug("Block %s promoted RAM → GPU due to hot stage", block_id)
+                promoted_meta = self.gpu_blocks[block_id]
+                promoted_meta.last_accessed = time.time()
+                promoted_meta.access_count += 1
+                self.stats[CacheTier.GPU_ROTOR].hits += 1
+                return self._materialize_block_tensor(
+                    promoted_meta, compressed_data=self.gpu_block_data[block_id]
+                )
             
             metadata.last_accessed = time.time()
             metadata.access_count += 1
@@ -265,7 +285,7 @@ class TieredKvCacheManager:
             
             # Return decompressed data from RAM
             raw_bytes = self.ram_block_data[block_id]
-            return self._decompress_rotor_bytes(raw_bytes, metadata)
+            return self._materialize_block_tensor(metadata, raw_bytes=raw_bytes)
 
     def evict_block(self, block_id: int) -> None:
         """Evict a block from cache."""
@@ -341,6 +361,86 @@ class TieredKvCacheManager:
         """Check if GPU tier has space."""
         used = sum(m.size_bytes for m in self.gpu_blocks.values())
         return used + required_bytes <= self.gpu_tier_capacity
+
+    def _gpu_utilization_ratio(self) -> float:
+        if self.gpu_tier_capacity <= 0:
+            return 1.0
+        used = sum(m.size_bytes for m in self.gpu_blocks.values())
+        return min(1.0, max(0.0, used / self.gpu_tier_capacity))
+
+    def _advance_stage_tick(self) -> int:
+        self._stage_tick += 1
+        return self._stage_tick
+
+    def _build_block_header(
+        self, stage: UniversalKvStage, quant_scale: float, used_rust_codec: bool
+    ) -> UniversalKvBlockHeaderV1:
+        flags = 0
+        if stage == UniversalKvStage.cold_turbo_residual:
+            flags |= UniversalKvBlockHeaderV1.FLAG_TURBO_RESIDUAL
+        return UniversalKvBlockHeaderV1(
+            block_size=self.block_size,
+            bit_width=3,
+            rotor_id=42 if used_rust_codec else 0,
+            codec=KvCodec.rq3_planar,
+            stage=stage,
+            scale=quant_scale,
+            flags=flags,
+        )
+
+    def _refresh_block_stage(self, metadata: BlockMetadata) -> None:
+        tick = self._advance_stage_tick()
+        age_steps = max(0, tick - metadata.last_stage_tick)
+        stage = self.placement_policy.select_stage(
+            importance=metadata.importance_score,
+            age_steps=age_steps,
+            gpu_utilization_pct=self._gpu_utilization_ratio(),
+        )
+        metadata.stage = stage
+        metadata.stage_age_steps = age_steps
+        metadata.last_stage_tick = tick
+        metadata.block_header = self._build_block_header(
+            stage=stage,
+            quant_scale=metadata.quant_scale,
+            used_rust_codec=metadata.used_rust_codec,
+        )
+        self._ensure_stage_reference_payload(metadata)
+
+    def _place_block_in_gpu(
+        self,
+        block_id: int,
+        metadata: BlockMetadata,
+        compressed_data: torch.Tensor,
+    ) -> bool:
+        if not self._gpu_tier_has_space(metadata.size_bytes):
+            return False
+        self.gpu_blocks[block_id] = metadata
+        self.gpu_block_data[block_id] = compressed_data
+        metadata.current_tier = CacheTier.GPU_ROTOR
+        self.block_to_tier[block_id] = CacheTier.GPU_ROTOR
+        self.stats[CacheTier.GPU_ROTOR].blocks_count += 1
+        self.stats[CacheTier.GPU_ROTOR].total_bytes += metadata.size_bytes
+        return True
+
+    def _place_block_in_ram(
+        self,
+        block_id: int,
+        metadata: BlockMetadata,
+        compressed_data: torch.Tensor,
+    ) -> bool:
+        if not self._ram_tier_has_space(metadata.size_bytes):
+            return False
+        self.ram_blocks[block_id] = metadata
+        self.ram_block_data[block_id] = (
+            compressed_data.cpu().numpy().tobytes()
+            if isinstance(compressed_data, torch.Tensor)
+            else compressed_data
+        )
+        metadata.current_tier = CacheTier.RAM_TURBO
+        self.block_to_tier[block_id] = CacheTier.RAM_TURBO
+        self.stats[CacheTier.RAM_TURBO].blocks_count += 1
+        self.stats[CacheTier.RAM_TURBO].total_bytes += metadata.size_bytes
+        return True
 
     def _ram_tier_has_space(self, required_bytes: int) -> bool:
         """Check if RAM tier has space."""
@@ -486,6 +586,144 @@ class TieredKvCacheManager:
         compressed = np.frombuffer(raw_bytes, dtype=np.uint8)
         return self._decode_payload_to_tensor(compressed, metadata)
 
+    def _materialize_block_tensor(
+        self,
+        metadata: BlockMetadata,
+        compressed_data: torch.Tensor | None = None,
+        raw_bytes: bytes | None = None,
+    ) -> torch.Tensor:
+        if (
+            metadata.stage == UniversalKvStage.warm_rotor_polar
+            and metadata.warm_reference_payload is not None
+        ):
+            metadata.stage_materialization_source = "warm_rotor_polar_reference"
+            return self._decode_warm_rotor_polar_reference(
+                metadata.warm_reference_payload, metadata
+            )
+        if (
+            metadata.stage == UniversalKvStage.cold_turbo_residual
+            and metadata.cold_reference_payload is not None
+        ):
+            metadata.stage_materialization_source = "cold_turbo_residual_reference"
+            return self._decode_cold_turbo_residual_reference(
+                metadata.cold_reference_payload, metadata
+            )
+        metadata.stage_materialization_source = "hot_rotor_payload"
+        if compressed_data is not None:
+            return self._decompress_rotor(compressed_data, metadata)
+        if raw_bytes is not None:
+            return self._decompress_rotor_bytes(raw_bytes, metadata)
+        decoded = self._decode_hot_payload_for_metadata(metadata)
+        if decoded is None:
+            raise KeyError(f"Unable to materialize payload for block {metadata.block_id}")
+        return decoded
+
+    def _decode_hot_payload_for_metadata(self, metadata: BlockMetadata) -> torch.Tensor | None:
+        block_id = metadata.block_id
+        tier = self.block_to_tier.get(block_id)
+        if tier == CacheTier.GPU_ROTOR and block_id in self.gpu_block_data:
+            return self._decompress_rotor(self.gpu_block_data[block_id], metadata)
+        if tier == CacheTier.RAM_TURBO and block_id in self.ram_block_data:
+            return self._decompress_rotor_bytes(self.ram_block_data[block_id], metadata)
+        return None
+
+    def _ensure_stage_reference_payload(
+        self,
+        metadata: BlockMetadata,
+        source_tensor: torch.Tensor | None = None,
+    ) -> None:
+        if metadata.stage == UniversalKvStage.hot_rotor:
+            return
+        source = source_tensor if source_tensor is not None else self._decode_hot_payload_for_metadata(metadata)
+        if source is None:
+            return
+        if (
+            metadata.stage == UniversalKvStage.warm_rotor_polar
+            and metadata.warm_reference_payload is None
+        ):
+            metadata.warm_reference_payload = self._encode_warm_rotor_polar_reference(source)
+            metadata.warm_reference_format = "warm_rotor_polar_ref_v1"
+        if (
+            metadata.stage == UniversalKvStage.cold_turbo_residual
+            and metadata.cold_reference_payload is None
+        ):
+            metadata.cold_reference_payload = self._encode_cold_turbo_residual_reference(source)
+            metadata.cold_reference_format = "cold_turbo_residual_ref_v1"
+
+    def _encode_warm_rotor_polar_reference(self, tensor: torch.Tensor) -> bytes:
+        flat = tensor.detach().float().cpu().reshape(-1).numpy().astype(np.float32, copy=False)
+        original_numel = int(flat.size)
+        if original_numel == 0:
+            return struct.pack("<4sI", b"WRP1", 0)
+        if original_numel % 2:
+            flat = np.pad(flat, (0, 1), mode="constant")
+        pairs = flat.reshape(-1, 2)
+        radius = np.sqrt(pairs[:, 0] ** 2 + pairs[:, 1] ** 2).astype(np.float16)
+        theta = np.arctan2(pairs[:, 1], pairs[:, 0]).astype(np.float16)
+        return struct.pack("<4sI", b"WRP1", original_numel) + radius.tobytes() + theta.tobytes()
+
+    def _decode_warm_rotor_polar_reference(
+        self, payload: bytes, metadata: BlockMetadata
+    ) -> torch.Tensor:
+        if len(payload) < 8:
+            raise ValueError("Invalid warm reference payload")
+        magic, original_numel = struct.unpack("<4sI", payload[:8])
+        if magic != b"WRP1":
+            raise ValueError("Unexpected warm reference payload magic")
+        if original_numel == 0:
+            return self._reshape_materialized_flat(np.zeros((0,), dtype=np.float32), metadata)
+        pair_count = (original_numel + 1) // 2
+        radius = np.frombuffer(payload, dtype=np.float16, count=pair_count, offset=8).astype(
+            np.float32
+        )
+        theta_offset = 8 + pair_count * np.dtype(np.float16).itemsize
+        theta = np.frombuffer(payload, dtype=np.float16, count=pair_count, offset=theta_offset).astype(
+            np.float32
+        )
+        flat = np.empty(pair_count * 2, dtype=np.float32)
+        flat[0::2] = radius * np.cos(theta)
+        flat[1::2] = radius * np.sin(theta)
+        return self._reshape_materialized_flat(flat[:original_numel], metadata)
+
+    def _encode_cold_turbo_residual_reference(self, tensor: torch.Tensor) -> bytes:
+        flat = tensor.detach().float().cpu().reshape(-1).numpy().astype(np.float32, copy=False)
+        original_numel = int(flat.size)
+        if original_numel == 0:
+            return struct.pack("<4sIff", b"CTR1", 0, 1.0, 1.0)
+        max_abs = float(np.max(np.abs(flat)))
+        base_scale = max(max_abs / 127.0, 1e-8)
+        base_q = np.clip(np.round(flat / base_scale), -127, 127).astype(np.int8)
+        base_recon = base_q.astype(np.float32) * base_scale
+        residual = flat - base_recon
+        residual_max = float(np.max(np.abs(residual)))
+        residual_scale = max(residual_max / 127.0, 1e-8)
+        residual_q = np.clip(np.round(residual / residual_scale), -127, 127).astype(np.int8)
+        return (
+            struct.pack("<4sIff", b"CTR1", original_numel, float(base_scale), float(residual_scale))
+            + base_q.tobytes()
+            + residual_q.tobytes()
+        )
+
+    def _decode_cold_turbo_residual_reference(
+        self, payload: bytes, metadata: BlockMetadata
+    ) -> torch.Tensor:
+        if len(payload) < 16:
+            raise ValueError("Invalid cold reference payload")
+        magic, original_numel, base_scale, residual_scale = struct.unpack("<4sIff", payload[:16])
+        if magic != b"CTR1":
+            raise ValueError("Unexpected cold reference payload magic")
+        if original_numel == 0:
+            return self._reshape_materialized_flat(np.zeros((0,), dtype=np.float32), metadata)
+        base_q = np.frombuffer(payload, dtype=np.int8, count=original_numel, offset=16).astype(
+            np.float32
+        )
+        residual_offset = 16 + original_numel
+        residual_q = np.frombuffer(
+            payload, dtype=np.int8, count=original_numel, offset=residual_offset
+        ).astype(np.float32)
+        flat = base_q * np.float32(base_scale) + residual_q * np.float32(residual_scale)
+        return self._reshape_materialized_flat(flat, metadata)
+
     def _decode_payload_to_tensor(
         self, compressed: np.ndarray, metadata: BlockMetadata
     ) -> torch.Tensor:
@@ -510,6 +748,13 @@ class TieredKvCacheManager:
 
         if metadata.original_numel > 0:
             flat = flat[: metadata.original_numel] * metadata.quant_scale
+        return self._reshape_materialized_flat(flat, metadata)
+
+    def _reshape_materialized_flat(
+        self, flat: np.ndarray, metadata: BlockMetadata
+    ) -> torch.Tensor:
+        if metadata.original_numel > 0:
+            flat = flat[: metadata.original_numel]
         if metadata.original_shape:
             return torch.from_numpy(flat.reshape(metadata.original_shape).astype(np.float32))
         return torch.from_numpy(flat.astype(np.float32))

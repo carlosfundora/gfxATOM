@@ -1,3 +1,51 @@
+## Wave 33F: Universal KV Stage-2/3 CPU Reference Transforms
+
+**Date:** 2026-05-17  
+**Work:** Added explicit Stage-2 (warm Rotor+Polar) and Stage-3 (cold Turbo residual) CPU/reference materialization paths to tiered KV cache manager while preserving Rust-first Stage-1 hot path.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Stage-driven reference transforms (`python/tiered_kv_cache_manager.py`)**
+   - Kept Stage-1 hot path on Rotor payload + optional Rust codec.
+   - Added warm-stage reference transform payload generation (`warm_rotor_polar_ref_v1`) and decode path.
+   - Added cold-stage reference transform payload generation (`cold_turbo_residual_ref_v1`) and decode path.
+   - Added explicit materialization source tracking so stage consumption behavior is observable in tests.
+   - Kept these paths CPU/reference only (no production HIP dispatch introduced).
+
+2. **Regression coverage (`tests/test_phase6_2_tiered_kv_cache.py`)**
+   - Extended stage transition tests to assert warm/cold reference payload production.
+   - Added assertions that warm/cold accesses are consumed through stage-specific reference materialization paths.
+   - Verified cold-stage metadata includes Turbo residual reference payload markers.
+
+## Wave 33E: Stage-1 HIP Scaffold + Kernel Discovery (gfx1030/Wave32)
+
+**Date:** 2026-05-17  
+**Work:** Added a non-invasive Stage-1 HIP scaffold in Rust with reuse-first kernel inventory for Rotor/Turbo/gfx1030 paths.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Kernel reuse discovery completed**
+   - Mapped Stage-1 candidate assets from:
+     - `gfxATOM-Rust/inventory/kv-dedupe-map.json`
+     - `/home/local/ai/build/kernels/**`
+     - `donors/llama.cpp-1-bit-turbo/**`
+     - `donors/sglang-1-bit-turbo/**`
+   - Tagged concrete integration points for rotor hot path, turbo residual path, and reshape/decode layout alignment.
+
+2. **Rust scaffold added (`crates/rs_rotorquant_codec/src/stage1_hip_scaffold.rs`)**
+   - Added `Stage1HipGuardrails` and `evaluate_guardrails(...)` for strict `gfx1030 + Wave32 + HIP runtime` gating.
+   - Added `DiscoveredKernelAsset` + static Stage-1 asset registry for reuse-first wiring.
+   - Added `stage1_scaffold_plan()` mapping to discovered rotor/turbo/reshape assets.
+   - Kept scaffold non-invasive: no production dispatch changed.
+
+3. **Static validation coverage**
+   - Added unit tests to ensure discovered assets cover all required source domains and guardrails reject unsafe configs.
+
+4. **Module exposure**
+   - Exported scaffold module via `rs_rotorquant_codec::stage1_hip_scaffold`.
+
 ## Wave 33D: Rust-First Rotor Adapter Default Path
 
 **Date:** 2026-05-17  
