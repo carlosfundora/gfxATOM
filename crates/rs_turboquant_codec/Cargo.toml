@@ -11,6 +11,12 @@ schemars = "0.8"
 thiserror = "1.0"
 rand = { version = "0.8", features = ["small_rng"] }
 ndarray = "0.15"
+pyo3 = { version = "0.20", features = ["extension-module"], optional = true }
+numpy = { version = "0.20", optional = true }
 
 [dev-dependencies]
 approx = "0.5"
+
+[features]
+default = []
+python = ["pyo3", "numpy"]

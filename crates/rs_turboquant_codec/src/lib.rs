@@ -12,6 +12,9 @@ pub mod qjl;
 pub mod turbo;
 pub mod simd;
 
+#[cfg(feature = "python")]
+pub mod ffi;
+
 pub use error::{Error, Result};
 pub use polar::{PolarCode, PolarQuantizer};
 pub use qjl::{QjlQuantizer, QjlSketch};
