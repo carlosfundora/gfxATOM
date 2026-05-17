@@ -8,9 +8,11 @@ class KvCodec(str, Enum):
     fp8_e4m3 = "fp8_e4m3"
     fp8_e5m2 = "fp8_e5m2"
     int8 = "int8"
-    tq4 = "tq4"
-    tq3 = "tq3"
-    tq2 = "tq2"
+    tq1 = "tq1"  # TurboQuant 1-bit (experimental)
+    tq2 = "tq2"  # TurboQuant 2-bit (production)
+    tq3 = "tq3"  # TurboQuant 3-bit (latency-sensitive)
+    tq4 = "tq4"  # TurboQuant 4-bit (accuracy-critical)
+    tq8 = "tq8"  # TurboQuant 8-bit (reference)
     rq3_planar = "rq3_planar"
     rq4_planar = "rq4_planar"
     rq3_iso = "rq3_iso"
@@ -44,6 +46,16 @@ def normalize_codec_alias(alias: str) -> KvCodec:
         return KvCodec.fp8_e5m2
     if value == "int8":
         return KvCodec.int8
+    if value in {"turbo_1bit", "tq1"}:
+        return KvCodec.tq1
+    if value in {"turbo_2bit", "tq2"}:
+        return KvCodec.tq2
+    if value in {"turbo_3bit", "tq3"}:
+        return KvCodec.tq3
+    if value in {"turbo_4bit", "tq4"}:
+        return KvCodec.tq4
+    if value in {"turbo_8bit", "tq8"}:
+        return KvCodec.tq8
     if value in {"rq3", "rq3_planar"}:
         return KvCodec.rq3_planar
     if value in {"rq4", "rq4_planar"}:
