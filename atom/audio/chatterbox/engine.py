@@ -33,11 +33,13 @@ from atom.audio.chatterbox.service import (
     ChatterboxService,
 )
 from atom.audio.runtime import create_cpu_inference_session
+from atom.utils.logger import init_logger
 
 logger = logging.getLogger("atom.audio.chatterbox")
 
 
 class RepetitionPenaltyProcessor:
+    """Simple repetition penalty processor logic."""
     def __init__(self, penalty: float):
         self.penalty = penalty
 
@@ -52,11 +54,8 @@ class RepetitionPenaltyProcessor:
 class ChatterboxEngine:
     """Chatterbox TTS engine with GPU-accelerated language model.
 
-    Pipeline:
-        1. encode_reference() — CPU ONNX speech encoder
-        2. prepare_inputs() — CPU ONNX embed_tokens + tokenizer
-        3. generate() — GPU autoregressive speech token generation
-        4. decode_speech() — CPU ONNX conditional decoder (vocoder)
+    If `backbone_dir` is omitted, the engine will fallback to running the
+    language model on CPU via ONNX Runtime (which is very slow).
     """
 
     def __init__(
@@ -69,15 +68,15 @@ class ChatterboxEngine:
         dtype: str = "float16",
         num_threads: Optional[int] = None,
     ):
-        """
+        """Initialize the TTS engine.
+
         Args:
             model_dir: Path to ONNX model directory (e.g., chatterbox-ONNX snapshot).
-            backbone_dir: Path to HF backbone model for GPU loading. If None,
-                          uses the ONNX language model on CPU instead.
-            variant: "standard" (Llama backbone) or "turbo" (GPT2 backbone).
-        onnx_variant: ONNX precision variant (fp16, fp32, q4f16, q8).
-            device: GPU device string.
-            dtype: Model dtype (float16, bfloat16, float32).
+            backbone_dir: Path to original PyTorch model directory (for GPU).
+                          If None, falls back to ONNX CPU execution.
+            variant: "standard" or "turbo".
+            device: GPU device for the autoregressive model.
+            dtype: Torch dtype for the autoregressive model.
         """
         self.model_dir = Path(model_dir)
         self.backbone_dir = Path(backbone_dir) if backbone_dir else None
@@ -85,20 +84,19 @@ class ChatterboxEngine:
         self.device = torch.device(device)
         self.dtype = getattr(torch, dtype)
 
-        # CPU service for ONNX components
         self.service = ChatterboxService(
-            model_dir=model_dir,
-            variant=variant,
+            model_dir=str(self.model_dir),
+            variant=self.variant,
             onnx_variant=onnx_variant,
             num_threads=num_threads,
         )
 
-        # GPU model (loaded in load())
         self._model = None
-        self._use_gpu_backbone = backbone_dir is not None
+        self._use_gpu_backbone = bool(self.backbone_dir)
 
     def load(self) -> None:
-        """Load all components."""
+        """Load CPU components (ONNX) and GPU components (PyTorch)."""
+        # Load CPU ONNX components (encoder, embed_tokens, decoder)
         self.service.load()
 
         if self._use_gpu_backbone:
@@ -107,7 +105,7 @@ class ChatterboxEngine:
             self._load_onnx_lm()
 
     def _load_gpu_backbone(self) -> None:
-        """Load the backbone model on GPU using HuggingFace transformers."""
+        """Load HuggingFace language model on GPU."""
         from transformers import AutoModelForCausalLM, AutoConfig
 
         t0 = time.time()
@@ -131,7 +129,7 @@ class ChatterboxEngine:
         logger.info(
             "Backbone loaded: %.0fM params, %.1fs, VRAM=%.0fMB",
             params_m, elapsed,
-            torch.cuda.memory_allocated(self.device) / 1e6,
+            torch.cuda.memory_allocated(self.device) / 1e6 if self.device.type == "cuda" else 0,
         )
 
     def _load_onnx_lm(self) -> None:

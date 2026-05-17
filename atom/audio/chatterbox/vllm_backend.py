@@ -437,9 +437,40 @@ def _prepare_runtime_workdir(
     return runtime_dir
 
 
-def _split_text(text: str, chunk_chars: int | None) -> list[str]:
+try:
+    import rs_codec
+    _HAS_RS_CODEC = True
+except ImportError:
+    _HAS_RS_CODEC = False
+
+def _split_text(
+    text: str,
+    chunk_chars: int | None = None,
+) -> list[str]:
     if not chunk_chars or len(text) <= chunk_chars:
         return [text]
+
+    if _HAS_RS_CODEC:
+        splitter = rs_codec.SentenceSplitter(min_sentence_length=10)
+        sentences = splitter.add_text(text)
+        flush = splitter.flush()
+        if flush:
+            sentences.append(flush)
+
+        # Merge short sentences up to chunk_chars safely
+        chunks = []
+        current = ""
+        for s in sentences:
+            if not current:
+                current = s
+            elif len(current) + len(s) + 1 <= chunk_chars:
+                current += " " + s
+            else:
+                chunks.append(current)
+                current = s
+        if current:
+            chunks.append(current)
+        return chunks or [text]
 
     chunks: list[str] = []
     remaining = text.strip()
