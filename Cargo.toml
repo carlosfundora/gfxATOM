@@ -6,5 +6,6 @@ members = [
     "crates/rs_autoquant_policy",
     "crates/rs_kv_validation_harness",
     "crates/rs_turboquant_codec",
+    "crates/rs_rotorquant_codec",
 ]
 resolver = "2"
