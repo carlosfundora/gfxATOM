@@ -1,3 +1,26 @@
+## Wave 33C: Tiered KV Rust Rotor Path Hardening
+
+**Date:** 2026-05-17  
+**Work:** Replaced mock random RotorQuant cache payload handling in tiered KV manager with deterministic packed 3-bit path plus optional Rust codec acceleration.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Tiered KV RotorQuant Core (`python/tiered_kv_cache_manager.py`)**
+   - Added optional Rust codec loading (`rs_rotorquant_codec.PyRotorQuantCodec`) for Tier-1 compression/decompression.
+   - Replaced random mock compressed payload generation with deterministic packed 3-bit quantization fallback.
+   - Added block payload metadata (`original_shape`, `original_numel`, `quant_scale`, `codec_name`, `used_rust_codec`) to make decode path shape-safe and reproducible.
+   - Upgraded decode logic to reconstruct original tensor shape and enforce finite deterministic output.
+   - Hardened RAM→GPU promotion to avoid CUDA-only assumptions in CPU/CI environments.
+
+2. **Tiered Cache Regression Coverage (`tests/test_phase6_2_tiered_kv_cache.py`)**
+   - Added shape-preservation regression test for decode path.
+   - Added compactness regression test ensuring stored payload remains smaller than FP32 baseline.
+   - Existing suite remains green with expanded coverage.
+
+3. **Validation**
+   - `17 passed` in `tests/test_phase6_2_tiered_kv_cache.py`.
+
 ## Wave 33B Phase 5.8: RotorQuant Codec Integration & Live Benchmarks
 
 **Date:** 2026-05-17  

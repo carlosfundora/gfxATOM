@@ -119,6 +119,38 @@ class TestTieredKvCacheManager:
         stats = self.cache_mgr.get_stats()
         assert stats["gpu_tier"]["hits"] == 1
         logger.info(f"✓ GPU tier access recorded: hits={stats['gpu_tier']['hits']}")
+
+    def test_access_block_preserves_shape(self):
+        """Decoded block should preserve original tensor shape."""
+        data = torch.randn(7, 321)
+        block_id = self.cache_mgr.allocate_block(
+            request_id="req_shape",
+            layer_idx=0,
+            seq_start=0,
+            seq_end=7,
+            data=data,
+            importance_score=0.9,
+        )
+        decoded = self.cache_mgr.access_block(block_id)
+        assert tuple(decoded.shape) == tuple(data.shape)
+        assert torch.isfinite(decoded).all()
+
+    def test_rotor_payload_is_more_compact_than_fp32(self):
+        """Packed 3-bit payload should beat FP32 byte footprint."""
+        data = torch.randn(64, 512)
+        block_id = self.cache_mgr.allocate_block(
+            request_id="req_compact",
+            layer_idx=0,
+            seq_start=0,
+            seq_end=64,
+            data=data,
+            importance_score=0.9,
+        )
+        metadata = self.cache_mgr.gpu_blocks.get(block_id) or self.cache_mgr.ram_blocks.get(block_id)
+        assert metadata is not None
+        fp32_bytes = data.numel() * 4
+        assert metadata.size_bytes < fp32_bytes
+        assert metadata.codec_name in {"python_packed_rq3", "rust_planar3"}
     
     def test_access_block_ram_tier_miss(self):
         """Accessing block on RAM tier records miss (latency penalty)."""
