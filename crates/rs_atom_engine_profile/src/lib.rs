@@ -277,6 +277,9 @@ pub struct EngineRuntimeProfile {
     pub supports_peak_throughput_reporting: bool,
     pub supports_perplexity_reporting: bool,
     pub supports_streaming_api_server: bool,
+    pub supports_kv_connector_warmup: bool,
+    pub supports_prefill_warmup_batch: bool,
+    pub supports_model_load_warmup: bool,
     pub storage_tiers_supported: Vec<KvStorageTier>,
     pub delegate_backend: Option<String>,
     pub placeholder: Option<String>,
@@ -290,6 +293,8 @@ pub struct EngineRuntimeProfile {
     pub storage_supports_zero_copy: Option<bool>,
     pub storage_layout_mode: Option<String>,
     pub storage_transfer_mem_type: Option<String>,
+    pub warmup_kv_connector_initialized: Option<bool>,
+    pub warmup_prefill_batch_executed: Option<bool>,
     pub attention_kernel_capabilities: Option<AttentionKernelCapabilities>,
     pub amd_kv_kernel_profile: Option<AmdKvKernelProfile>,
     pub adaptive_recommendation: Option<String>,
@@ -405,6 +410,9 @@ impl Default for EngineRuntimeProfile {
             supports_peak_throughput_reporting: false,
             supports_perplexity_reporting: false,
             supports_streaming_api_server: false,
+            supports_kv_connector_warmup: false,
+            supports_prefill_warmup_batch: false,
+            supports_model_load_warmup: false,
             storage_tiers_supported: vec![KvStorageTier::Hbm, KvStorageTier::CpuRam],
             delegate_backend: None,
             placeholder: None,
@@ -418,6 +426,8 @@ impl Default for EngineRuntimeProfile {
             storage_supports_zero_copy: None,
             storage_layout_mode: None,
             storage_transfer_mem_type: None,
+            warmup_kv_connector_initialized: None,
+            warmup_prefill_batch_executed: None,
             attention_kernel_capabilities: None,
             amd_kv_kernel_profile: None,
             adaptive_recommendation: None,
@@ -662,6 +672,16 @@ impl EngineRuntimeProfile {
         self.supports_hardware_plugin_interface = supports_hardware_plugin_interface;
         self
     }
+
+    pub fn with_warmup_initialization_state(
+        mut self,
+        kv_connector_initialized: bool,
+        prefill_batch_executed: bool,
+    ) -> Self {
+        self.warmup_kv_connector_initialized = Some(kv_connector_initialized);
+        self.warmup_prefill_batch_executed = Some(prefill_batch_executed);
+        self
+    }
 }
 
 #[cfg(test)]
@@ -894,6 +914,14 @@ mod tests {
         assert!(profile.supports_multimodal_serving);
         assert!(profile.supports_omni_modality);
         assert!(!profile.supports_hardware_plugin_interface);
+    }
+
+    #[test]
+    fn warmup_initialization_helper_sets_warmup_state() {
+        let profile = EngineRuntimeProfile::default()
+            .with_warmup_initialization_state(true, true);
+        assert_eq!(profile.warmup_kv_connector_initialized, Some(true));
+        assert_eq!(profile.warmup_prefill_batch_executed, Some(true));
     }
 
     #[test]

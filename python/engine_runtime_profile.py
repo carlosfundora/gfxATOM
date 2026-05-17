@@ -85,6 +85,9 @@ class EngineRuntimeProfile:
     supports_peak_throughput_reporting: bool = False
     supports_perplexity_reporting: bool = False
     supports_streaming_api_server: bool = False
+    supports_kv_connector_warmup: bool = False
+    supports_prefill_warmup_batch: bool = False
+    supports_model_load_warmup: bool = False
     storage_tiers_supported: list[str] = field(default_factory=lambda: ["Hbm", "CpuRam"])
     delegate_backend: str | None = None
     placeholder: str | None = None
@@ -98,6 +101,8 @@ class EngineRuntimeProfile:
     storage_supports_zero_copy: bool | None = None
     storage_layout_mode: str | None = None
     storage_transfer_mem_type: str | None = None
+    warmup_kv_connector_initialized: bool | None = None
+    warmup_prefill_batch_executed: bool | None = None
     attention_kernel_capabilities: dict[str, object] | None = None
     amd_kv_kernel_profile: dict[str, object] | None = None
     adaptive_recommendation: dict[str, object] | None = None
@@ -356,4 +361,22 @@ class EngineRuntimeProfile:
             supports_peak_throughput_reporting=supports_peak_throughput_reporting,
             supports_perplexity_reporting=supports_perplexity_reporting,
             supports_streaming_api_server=supports_streaming_api_server,
+        )
+
+    def with_warmup_initialization_state(
+        self,
+        *,
+        supports_kv_connector_warmup: bool,
+        supports_prefill_warmup_batch: bool,
+        supports_model_load_warmup: bool,
+        warmup_kv_connector_initialized: bool | None = None,
+        warmup_prefill_batch_executed: bool | None = None,
+    ) -> "EngineRuntimeProfile":
+        return replace(
+            self,
+            supports_kv_connector_warmup=supports_kv_connector_warmup,
+            supports_prefill_warmup_batch=supports_prefill_warmup_batch,
+            supports_model_load_warmup=supports_model_load_warmup,
+            warmup_kv_connector_initialized=warmup_kv_connector_initialized,
+            warmup_prefill_batch_executed=warmup_prefill_batch_executed,
         )

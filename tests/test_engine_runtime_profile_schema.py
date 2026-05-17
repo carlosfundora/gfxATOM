@@ -239,3 +239,21 @@ def test_python_runtime_profile_vllm_runtime_family_helper():
     assert payload["supports_multimodal_serving"] is True
     assert payload["supports_omni_modality"] is True
     assert payload["supports_hardware_plugin_interface"] is False
+
+
+def test_python_runtime_profile_warmup_initialization_helper():
+    engine_runtime_profile = _load_python_profile_class()
+    profile = engine_runtime_profile().with_warmup_initialization_state(
+        supports_kv_connector_warmup=True,
+        supports_prefill_warmup_batch=True,
+        supports_model_load_warmup=False,
+        warmup_kv_connector_initialized=True,
+        warmup_prefill_batch_executed=True,
+    )
+    payload = profile.to_dict()
+    assert payload["supports_kv_connector_warmup"] is True
+    assert payload["supports_prefill_warmup_batch"] is True
+    assert payload["supports_model_load_warmup"] is False
+    assert payload["warmup_kv_connector_initialized"] is True
+    assert payload["warmup_prefill_batch_executed"] is True
+
