@@ -1,0 +1,593 @@
+{
+  "timestamp": "2026-05-17 05:31:47",
+  "results": [
+    {
+      "model": "OpenCoder-8B",
+      "path": "/home/local/ai/models/registry/QuantFactory/OpenCoder-8B-Instruct-GGUF/OpenCoder-8B-Instruct.Q4_K_M.gguf",
+      "tests": [
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 2082.823,
+          "decode_us": 1683.153,
+          "roundtrip_mse": 4.313673684919195e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1457.7,
+          "decode_us": 754.349,
+          "roundtrip_mse": 4.313673684919195e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1433.07,
+          "decode_us": 764.939,
+          "roundtrip_mse": 4.313673684919195e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1382.792,
+          "decode_us": 757.429,
+          "roundtrip_mse": 4.313673684919195e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 11178.603,
+          "decode_us": 7792.946,
+          "roundtrip_mse": 4.321385205230399e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 12658.402,
+          "decode_us": 7878.544,
+          "roundtrip_mse": 4.321385205230399e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 12755.87,
+          "decode_us": 7823.795,
+          "roundtrip_mse": 4.321385205230399e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10527.521,
+          "decode_us": 8514.686,
+          "roundtrip_mse": 4.321385205230399e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 14794.283,
+          "decode_us": 7770.377,
+          "roundtrip_mse": 4.3067917232519903e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10609.689,
+          "decode_us": 8415.209,
+          "roundtrip_mse": 4.3067917232519903e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10593.039,
+          "decode_us": 8421.759,
+          "roundtrip_mse": 4.3067917232519903e-08
+        },
+        {
+          "model_name": "OpenCoder-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10622.638,
+          "decode_us": 8365.57,
+          "roundtrip_mse": 4.3067917232519903e-08
+        }
+      ],
+      "summary": {
+        "model": "OpenCoder-8B",
+        "test_count": 12,
+        "avg_compression_ratio": 2.0,
+        "max_compression_ratio": 2.0,
+        "min_compression_ratio": 2.0,
+        "avg_roundtrip_mse": 4.313950204467195e-08,
+        "avg_encode_us": 8341.369166666667,
+        "avg_decode_us": 5745.229666666666
+      }
+    },
+    {
+      "model": "LFM2.5-1.2B",
+      "path": "/home/local/ai/models/registry/Community/mradermacher/LFM2.5-1.2B-Thinking-Claude-4.6-Opus-Heretic-Uncensored-DISTILL-GGUF/LFM2.5-1.2B-Thinking-Claude-4.6-Opus-Heretic-Uncensored-DISTILL.Q8_0.gguf",
+      "tests": [
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1322.934,
+          "decode_us": 725.41,
+          "roundtrip_mse": 4.288051158596318e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1336.153,
+          "decode_us": 728.7,
+          "roundtrip_mse": 4.288051158596318e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1327.553,
+          "decode_us": 721.691,
+          "roundtrip_mse": 4.288051158596318e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1326.503,
+          "decode_us": 733.43,
+          "roundtrip_mse": 4.288051158596318e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 11860.265,
+          "decode_us": 7745.717,
+          "roundtrip_mse": 4.313537615985297e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 12537.205,
+          "decode_us": 7747.877,
+          "roundtrip_mse": 4.313537615985297e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10614.928,
+          "decode_us": 8673.762,
+          "roundtrip_mse": 4.313537615985297e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10689.516,
+          "decode_us": 8540.966,
+          "roundtrip_mse": 4.313537615985297e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10974.438,
+          "decode_us": 6036.084,
+          "roundtrip_mse": 4.3133276506068796e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10983.368,
+          "decode_us": 6055.043,
+          "roundtrip_mse": 4.3133276506068796e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10968.049,
+          "decode_us": 5970.446,
+          "roundtrip_mse": 4.3133276506068796e-08
+        },
+        {
+          "model_name": "LFM2.5-1.2B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10829.593,
+          "decode_us": 5911.247,
+          "roundtrip_mse": 4.3133276506068796e-08
+        }
+      ],
+      "summary": {
+        "model": "LFM2.5-1.2B",
+        "test_count": 12,
+        "avg_compression_ratio": 2.0,
+        "max_compression_ratio": 2.0,
+        "min_compression_ratio": 2.0,
+        "avg_roundtrip_mse": 4.304972141729498e-08,
+        "avg_encode_us": 7897.542083333334,
+        "avg_decode_us": 4965.864416666667
+      }
+    },
+    {
+      "model": "Bonsai-8B",
+      "path": "/home/local/ai/models/registry/PrismML/Bonsai-8B-gguf/Bonsai-8B.gguf",
+      "tests": [
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1316.504,
+          "decode_us": 718.31,
+          "roundtrip_mse": 4.296159161754076e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1329.143,
+          "decode_us": 722.871,
+          "roundtrip_mse": 4.296159161754076e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1315.043,
+          "decode_us": 732.33,
+          "roundtrip_mse": 4.296159161754076e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            128,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 2097152,
+          "compressed_bytes": 1048576,
+          "encode_us": 1334.463,
+          "decode_us": 725.99,
+          "roundtrip_mse": 4.296159161754076e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 11934.602,
+          "decode_us": 7809.045,
+          "roundtrip_mse": 4.309651302492057e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 12496.166,
+          "decode_us": 7778.607,
+          "roundtrip_mse": 4.309651302492057e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10654.148,
+          "decode_us": 8469.417,
+          "roundtrip_mse": 4.309651302492057e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            4,
+            256,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10614.548,
+          "decode_us": 8460.328,
+          "roundtrip_mse": 4.309651302492057e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq1",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10975.678,
+          "decode_us": 6111.002,
+          "roundtrip_mse": 4.314784263215188e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq2",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10621.828,
+          "decode_us": 5977.996,
+          "roundtrip_mse": 4.314784263215188e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq3",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 10691.946,
+          "decode_us": 5882.479,
+          "roundtrip_mse": 4.314784263215188e-08
+        },
+        {
+          "model_name": "Bonsai-8B",
+          "kv_shape": [
+            1,
+            1024,
+            32,
+            128
+          ],
+          "compression_mode": "tq4",
+          "original_bytes": 16777216,
+          "compressed_bytes": 8388608,
+          "encode_us": 11188.093,
+          "decode_us": 6017.834,
+          "roundtrip_mse": 4.314784263215188e-08
+        }
+      ],
+      "summary": {
+        "model": "Bonsai-8B",
+        "test_count": 12,
+        "avg_compression_ratio": 2.0,
+        "max_compression_ratio": 2.0,
+        "min_compression_ratio": 2.0,
+        "avg_roundtrip_mse": 4.3068649091537736e-08,
+        "avg_encode_us": 7872.680166666665,
+        "avg_decode_us": 4950.517416666667
+      }
+    }
+  ]
+}
