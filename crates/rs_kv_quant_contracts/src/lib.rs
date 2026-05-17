@@ -93,7 +93,7 @@ pub struct PositionalIndexEntry {
 }
 
 /// Typed errors for positional index operations.
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum PositionalIndexError {
     #[error("worker {0} is not tracked in the positional index")]
     WorkerNotTracked(u32),
@@ -405,10 +405,14 @@ impl RadixTreeSnapshot {
     }
 }
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum KvCodecError {
     #[error("unsupported kv codec alias: {0}")]
     UnsupportedAlias(String),
+    #[error("FP8 KV cache dimension {0} is not aligned to 16-byte boundary (required for {1})")]
+    Fp8DimensionMisaligned(usize, String),
+    #[error("KV codec constraint validation failed: {0}")]
+    ConstraintViolation(String),
 }
 
 pub fn normalize_codec_alias(alias: &str) -> Result<KvCodec, KvCodecError> {
@@ -427,6 +431,26 @@ pub fn normalize_codec_alias(alias: &str) -> Result<KvCodec, KvCodecError> {
         "rq4_iso" => Ok(KvCodec::Rq4Iso),
         other => Err(KvCodecError::UnsupportedAlias(other.to_string())),
     }
+}
+
+/// Validates that the given head dimension is aligned to 16 bytes for FP8 KV cache.
+/// FP8 KV caches require 16-byte aligned dimensions for efficient vectorized access.
+/// Formula: `aligned_dim = ((head_dim + 15) // 16) * 16`
+pub fn validate_fp8_kv_dimension(head_dim: usize, model_name: &str) -> Result<usize, KvCodecError> {
+    let aligned = ((head_dim + 15) / 16) * 16;
+    if head_dim % 16 != 0 {
+        return Err(KvCodecError::Fp8DimensionMisaligned(
+            head_dim,
+            format!("{} (aligned to {})", model_name, aligned),
+        ));
+    }
+    Ok(head_dim)
+}
+
+/// Suggests the proper aligned dimension for FP8 KV cache.
+/// This is useful for model implementations that compute `head_dim + offset` (e.g., DeepSeek v2).
+pub fn align_dimension_to_16(dimension: usize) -> usize {
+    ((dimension + 15) / 16) * 16
 }
 
 impl KvQuantPolicy {
@@ -666,5 +690,44 @@ mod tests {
         assert_eq!(ok.unwrap(), 42);
         let err: PositionalIndexResult<u32> = Err(PositionalIndexError::WorkerNotTracked(1));
         assert!(err.is_err());
+    }
+
+    #[test]
+    fn fp8_kv_dimension_alignment_validation() {
+        // Aligned dimensions should pass
+        assert_eq!(validate_fp8_kv_dimension(16, "model").unwrap(), 16);
+        assert_eq!(validate_fp8_kv_dimension(32, "model").unwrap(), 32);
+        assert_eq!(validate_fp8_kv_dimension(64, "model").unwrap(), 64);
+        assert_eq!(validate_fp8_kv_dimension(128, "model").unwrap(), 128);
+
+        // Misaligned dimensions should fail with proper error
+        let err = validate_fp8_kv_dimension(20, "deepseek_v2");
+        assert!(err.is_err());
+        let msg = err.unwrap_err().to_string();
+        assert!(msg.contains("20"));
+        assert!(msg.contains("aligned to 32"));
+
+        let err = validate_fp8_kv_dimension(100, "test_model");
+        assert!(err.is_err());
+        let msg = err.unwrap_err().to_string();
+        assert!(msg.contains("100"));
+        assert!(msg.contains("aligned to 112"));
+    }
+
+    #[test]
+    fn align_dimension_to_16_helper() {
+        // DeepSeek v2 case: head_dim (128) + 4 offset = 132, should align to 144
+        assert_eq!(align_dimension_to_16(132), 144);
+
+        // Already aligned
+        assert_eq!(align_dimension_to_16(16), 16);
+        assert_eq!(align_dimension_to_16(64), 64);
+        assert_eq!(align_dimension_to_16(128), 128);
+
+        // Various unaligned cases
+        assert_eq!(align_dimension_to_16(1), 16);
+        assert_eq!(align_dimension_to_16(17), 32);
+        assert_eq!(align_dimension_to_16(100), 112);
+        assert_eq!(align_dimension_to_16(255), 256);
     }
 }
