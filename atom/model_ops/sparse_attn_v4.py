@@ -20,6 +20,8 @@ import torch
 import triton
 import triton.language as tl
 
+_USE_TRITON_ATTN = os.environ.get("ATOM_USE_TRITON_ATTN", "1") == "1"
+
 # ---------------------------------------------------------------------------
 # sparse_attn — FlashAttention-style sparse MQA with attention sink
 # ---------------------------------------------------------------------------
@@ -374,7 +376,7 @@ def sparse_attn_ragged(
         kv: [total_kv, D]
         topk_idxs: [num_tokens, K] global indices into `kv`; -1 entries are skipped.
     """
-    if os.environ.get("ATOM_USE_TRITON_ATTN", "1") == "1":
+    if _USE_TRITON_ATTN:
         return _sparse_attn_ragged_triton(q, kv, attn_sink, topk_idxs, softmax_scale)
     return _sparse_attn_ragged_torch(q, kv, attn_sink, topk_idxs, softmax_scale)
 
@@ -490,7 +492,7 @@ def sparse_attn(
     Set `ATOM_USE_TRITON_ATTN=1` to use the Triton kernel. The torch
     implementation remains the default when the env var is unset.
     """
-    if os.environ.get("ATOM_USE_TRITON_ATTN", "1") == "1":
+    if _USE_TRITON_ATTN:
         return _sparse_attn_triton(q, kv, attn_sink, topk_idxs, softmax_scale)
     return _sparse_attn_torch(q, kv, attn_sink, topk_idxs, softmax_scale)
 
