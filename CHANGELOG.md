@@ -1,3 +1,155 @@
+## Wave 34G: llama.cpp family catalog + additive preservation
+
+**Date:** 2026-05-17  
+**Work:** Added a Rust family catalog for imported llama.cpp GGUF architectures, attention traits, and graph hints, and wired it into the benchmark JSON without collapsing fork-local model additions into upstream buckets.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Family catalog (`crates/rs_gguf_loader_core/src/llama_cpp_family.rs`)**
+   - Groups imported llama.cpp architectures into normalized families.
+   - Captures attention traits, graph traits, and model-role hints from the donor surface and model/graph source markers.
+   - Preserves unknown or fork-local architectures as their own normalized family ids so additions like Jina-style entries stay visible.
+
+2. **Family snapshot importer (`gguf-family-import`)**
+   - Emits `inventory/llama_cpp_family_catalog.json` as a reusable normalized registry.
+   - Carries the same donor source revision as the capability surface snapshot for traceability.
+
+3. **Benchmark integration**
+   - `gguf-benchmark` now embeds the family catalog and records the selected family id for each model.
+   - The benchmark JSON now reflects both profile choice and family choice.
+
+## Wave 34F: Stock llama.cpp donor baseline
+
+**Date:** 2026-05-17  
+**Work:** Added a separate stock upstream llama.cpp donor clone at `/home/local/ai/projects/donors/llama.cpp` so capability harvesting and profile imports can stay isolated from the maintained `llama.cpp-1-bit-turbo` fork.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Baseline donor separation**
+   - Kept the upstream llama.cpp baseline distinct from the maintained AMD-specific fork.
+   - This preserves a clean upstream surface for future GGUF/profile refreshes.
+
+## Wave 34E: llama.cpp Capability Surface Importer
+
+**Date:** 2026-05-17  
+**Work:** Added a Rust importer that snapshots llama.cpp GGUF capability metadata from donor source into `inventory/llama_cpp_gguf_surface.json`, and wired the benchmark runner to consume that surface alongside per-model profile selection.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Capability surface importer (`crates/rs_gguf_loader_core/src/llama_cpp_surface.rs`)**
+   - Extracts architecture names, quantization/file-type labels, and GGUF loader KV keys from llama.cpp source maps.
+   - Normalizes HF-style architecture names so profile matching can compare upstream capability names against local model metadata.
+   - Adds JSON round-trip coverage for the imported surface.
+
+2. **Import CLI (`gguf-profile-import`)**
+   - Generates a reusable inventory snapshot from a llama.cpp checkout.
+   - Current snapshot from the donor tree contains:
+     - 127 architecture entries
+     - 35 quantization labels
+     - 186 loader KV keys
+
+3. **Benchmark integration**
+   - `gguf-benchmark` now embeds the imported llama.cpp surface in the benchmark JSON.
+   - Profile availability is gated by source-surface architecture/quantization support instead of raw timing alone.
+
+## Wave 34D: Rust GGUF Load Comparison Runner
+
+**Date:** 2026-05-17  
+**Work:** Moved the GGUF comparison runner into Rust (`gguf-benchmark`) and captured real qwen GGUF load results plus TurboRotor VRAM estimates in `benchmarks/gguf_load_comparison.json`.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **Rust benchmark runner (`crates/rs_gguf_loader_core/src/bin/gguf-benchmark.rs`)**
+   - Runs ATOM-side load-only planning directly in Rust.
+   - Executes `llama-cli` with `--single-turn` for real load comparison.
+   - Emits JSON with per-model ATOM, llama.cpp, and TurboRotor VRAM results.
+
+2. **Load-only CLI support (`gguf-plan`)**
+   - Added `--load-only` and `--json` switches for direct machine-readable planning output.
+   - Preserved the fast header-only load path for debugging and benchmark orchestration.
+
+3. **Captured qwen benchmark results**
+   - q2_K:
+     - ATOM load-only: ~0.014 ms
+     - llama.cpp: ~774.5 ms
+   - q4_K_M:
+     - ATOM load-only: ~0.012 ms
+     - llama.cpp: ~702.6 ms
+   - TurboRotor estimate: 393,216 bytes GPU footprint, 0 bytes RAM spill for the representative 128-token window.
+
+## Wave 34C: Universal KV E2E contract + benchmark harness
+
+**Date:** 2026-05-17  
+**Work:** Added cross-model Universal KV broker contract tests and benchmark instrumentation, and promoted storage-orchestration capabilities as default runtime profile signals.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **E2E contract coverage (`tests/test_universal_kv_broker_e2e.py`)**
+   - Added cross-model materialization contract test (LFM-produced block consumed with Qwen target shape).
+   - Added pooled multi-model stress path that forces spill to RAM tier and validates deterministic restore behavior.
+
+2. **Benchmark harness (`benchmarks/benchmark_universal_kv_broker.py`)**
+   - Added runnable benchmark for:
+     - VRAM hot-tier hit rate
+     - Spill/restore latency percentiles (p50/p95)
+     - Effective context expansion estimate for two-tier compressed pool
+   - Added JSON output path and CLI controls for model mix and capacities.
+
+3. **Runtime profile defaults promoted**
+   - Enabled ATOM storage-orchestration defaults in Python and Rust runtime profiles:
+     - `supports_distributed_memory_pooling`
+     - `supports_dynamic_multilevel_caching`
+     - `supports_kv_matching`
+     - `supports_async_eviction`
+
+## Wave 34B: Rust GGUF Loader Core (ATOM assimilation step 1)
+
+**Date:** 2026-05-17  
+**Work:** Implemented the first ATOM-side GGUF assimilation module in Rust (`rs_gguf_loader_core`) to harden GGUF parsing and load planning for backend cutover.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **New crate (`crates/rs_gguf_loader_core`)**
+   - Added strict GGUF v3 header parser (`parse_gguf_header_bytes`, `parse_gguf_header_path`) with explicit typed errors.
+   - Added deterministic loader planning (`synthesize_load_plan`) for prefetch budget, IO chunking, mmap usage, and pinned staging hinting.
+   - Added conservative index-size estimator used by the load planner.
+
+2. **CLI utility (`gguf-plan`)**
+   - Added `src/bin/gguf-plan.rs` for quick file-level planning output (`version`, `tensor_count`, `prefetch_bytes`, `io_chunk_bytes`, staging flags).
+   - This is intended as a thin ops/debug seam while Python-side routing is still being assimilated.
+
+3. **Workspace wiring + test coverage**
+   - Registered `rs_gguf_loader_core` in workspace `Cargo.toml`.
+   - Added unit tests covering valid parse, invalid magic, unsupported versions, and load-plan scaling behavior.
+
+## Wave 34A: GGUF Cross-Engine Comparator + ATOM Assimilation Synthesizer
+
+**Date:** 2026-05-17  
+**Work:** Added a concrete GGUF comparison pipeline across SGLang, ATOM, and llama.cpp that emits an ATOM-first Rust assimilation plan for backend cutover readiness.  
+**Status:** ✅ COMPLETE
+
+### Changes
+
+1. **GGUF comparison module (`python/gguf_pipeline_comparator.py`)**
+   - Added static code-signal scanner for GGUF loader hooks, KV cache pathways, quant mode vocabulary, and Rust GGUF coverage.
+   - Added weighted engine scoring and ranking.
+   - Added ATOM assimilation-step synthesis (`atom-gguf-loader-core`, `atom-kv-runtime-bridge`, `atom-quant-mode-router`, `atom-backend-cutover-gates`).
+   - Added default engine path mapping for local workspace topology.
+
+2. **Benchmark/report CLI (`benchmarks/compare_gguf_pipelines.py`)**
+   - Added executable command entry to compare current donor surfaces and write JSON output.
+   - Emits ranking and prioritized assimilation-step summary for fast planning loops.
+
+3. **Regression tests (`tests/test_gguf_pipeline_comparator.py`)**
+   - Added tests for GGUF/loader/KV/quant signal detection.
+   - Added tests that validate synthesized ATOM assimilation steps from comparative signals.
+
 ## Wave 33F: Universal KV Stage-2/3 CPU Reference Transforms
 
 **Date:** 2026-05-17  
