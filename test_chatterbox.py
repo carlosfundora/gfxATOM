@@ -1,21 +1,30 @@
 import sys
 from unittest.mock import MagicMock
-sys.modules['aiter'] = MagicMock()
-sys.modules['aiter.dist'] = MagicMock()
-sys.modules['aiter.dist.shm_broadcast'] = MagicMock()
-sys.modules['aiter.utility'] = MagicMock()
-sys.modules['aiter.utility.dtypes'] = MagicMock()
-sys.modules['vllm'] = MagicMock()
 
-import torch
+sys.modules['torch'] = MagicMock()
+sys.modules['torch.nn'] = MagicMock()
+sys.modules['torch.nn.functional'] = MagicMock()
+sys.modules['torch.utils'] = MagicMock()
+sys.modules['torch.utils.data'] = MagicMock()
+sys.modules['torch.distributed'] = MagicMock()
+sys.modules['torch.library'] = MagicMock()
+sys.modules['torch.cuda'] = MagicMock()
 
-import rs_codec
-print("rs_codec imported successfully")
+import numpy as np
 
-from atom.audio.chatterbox.engine import ChatterboxEngine
+import atom.audio.chatterbox.engine
+ChatterboxEngine = atom.audio.chatterbox.engine.ChatterboxEngine
 
-try:
-    engine = ChatterboxEngine(model_dir="dummy", device="cpu", dtype="float32")
-    print("Engine initialized")
-except Exception as e:
-    print(f"Engine init failed: {e}")
+def test_engine_rep_penalty():
+    vocab_size = 32000
+    batch_size = 1
+    seq_len = 512
+    np.random.seed(42)
+    scores = np.random.randn(batch_size, vocab_size).astype(np.float32)
+    input_ids = np.random.randint(0, vocab_size, size=(batch_size, seq_len)).astype(np.int64)
+    penalty = 1.2
+
+    # Check it runs without error
+    out = ChatterboxEngine._np_rep_penalty(input_ids, scores.copy(), penalty)
+    assert out.shape == scores.shape
+

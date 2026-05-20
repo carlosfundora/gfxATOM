@@ -1,11 +1,9 @@
 {
-  "candidate": "atom/model_engine/block_manager.py",
+  "candidate": "atom.audio.chatterbox.engine._np_rep_penalty",
   "implementation": "after",
-  "command": "python benchmark_rust_hash.py",
-  "timestamp": "2026-05-10T20:37:31.565834",
-  "iterations": 100000,
-  "input_description": "list of 1024 ints, prefix 12345",
-  "duration_ms": 2431.182853999985,
-  "throughput": "41132.24 hashes/s",
-  "notes": "Testing compute_hash functionality after replacing with Rust version."
+  "command": "python test_np_rep_penalty_benchmark.py",
+  "timestamp": "2026-05-20T04:12:57",
+  "iterations": 10000,
+  "input_description": "Batch 1, vocab 32000, seq 512",
+  "duration_ms": 78.90009880065918
 }

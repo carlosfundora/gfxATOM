@@ -16,6 +16,14 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+import os
+
+try:
+    import rs_codec
+    _HAS_RS_CODEC = True
+except ImportError:
+    _HAS_RS_CODEC = False
+
 import torch
 import torch.nn.functional as F
 
@@ -418,9 +426,11 @@ class ChatterboxEngine:
             tokens = tokens[:, :-1]
 
         return tokens
-
     @staticmethod
     def _np_rep_penalty(input_ids, scores, penalty):
+        if _HAS_RS_CODEC and os.environ.get("RUST_REP_PENALTY", "1") == "1":
+            rs_codec.rep_penalty_kernel(scores, input_ids, penalty)
+            return scores
         score = np.take_along_axis(scores, input_ids, axis=1)
         score = np.where(score < 0, score * penalty, score / penalty)
         np.put_along_axis(scores, input_ids, score, axis=1)

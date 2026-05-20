@@ -236,6 +236,44 @@ impl SentenceSplitter {
     }
 }
 
+
+use numpy::{PyArray2, PyArrayMethods, PyReadonlyArray2};
+
+#[pyfunction]
+fn rep_penalty_kernel(
+    _py: Python,
+    scores: &Bound<'_, PyArray2<f32>>,
+    input_ids: PyReadonlyArray2<i64>,
+    penalty: f32,
+) -> PyResult<()> {
+    let ids_view = input_ids.as_array();
+    let mut scores_rw = scores.readwrite();
+    let mut out = scores_rw.as_array_mut();
+
+    let mut id_buf = Vec::with_capacity(ids_view.shape()[1]);
+
+    for (batch_idx, batch_ids) in ids_view.outer_iter().enumerate() {
+        id_buf.clear();
+        for &id in batch_ids.iter() {
+            id_buf.push(id as usize);
+        }
+        id_buf.sort_unstable();
+        id_buf.dedup();
+
+        for &id in &id_buf {
+            if let Some(score) = out.get_mut((batch_idx, id)) {
+                if *score < 0.0 {
+                    *score = *score * penalty;
+                } else {
+                    *score = *score / penalty;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[pymodule]
 fn rs_codec(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(soft_compressor, m)?)?;
@@ -243,6 +281,7 @@ fn rs_codec(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(iir_1pole_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(highpass_kernel, m)?)?;
     m.add_function(wrap_pyfunction!(audio_to_pcm_bytes, m)?)?;
+    m.add_function(wrap_pyfunction!(rep_penalty_kernel, m)?)?;
     m.add_class::<SentenceSplitter>()?;
     Ok(())
 }

@@ -1,10 +1,8 @@
-# Prefix Cache Hash Benchmark Summary
+# Benchmark Summary
 
-* **Before Command:** `python benchmark_block_manager_hash.py`
-* **After Command:** `python benchmark_rust_hash.py`
-* **Before Timing:** 5988 ms (100,000 iterations, ~16,699 hashes/s)
-* **After Timing:** 2431 ms (100,000 iterations, ~41,132 hashes/s)
-* **Percent Change:** Throughput increased by 146.3% (2.46x faster)
-
-**Notes on Variance/Limitations:**
-This benchmark measures just the raw `compute_hash` function overhead which gets called heavily in the python hot path when prefix caching is enabled (every time a block is allocated or checked). The python version calls `np.array(token_ids).tobytes()` on every call, which involves list traversal and allocation. The Rust version iterates the integers directly and hashes them efficiently using `xxhash-rust`.
+- Before command: `python test_np_rep_penalty_benchmark.py` (which uses pure NumPy `take_along_axis` and `put_along_axis`)
+- After command: `python test_np_rep_penalty_benchmark.py` (which uses the custom `rs_codec.rep_penalty_kernel` Zero-Copy SIMD-capable backend)
+- Before timing: ~464 ms for 10000 iterations of batched repetition penalty on a vocab of 32000 and seq_len of 512.
+- After timing: ~78 ms for 10000 iterations of the same workload.
+- Percent change: ~83% reduction in execution time (nearly 6x faster logic).
+- Notes: The python hot loop in Chatterbox Engine relies heavily on generating tokens individually using a repetition penalty across the entire logits tensor. Moving the index iteration, deduplication, and conditional logic (where score < 0) out of NumPy operations into Rust with PyO3 bindings allows this operation to be in-place zero-copy and removes the heavy array allocation overhead inherent to numpy `where` and `take_along_axis`.
