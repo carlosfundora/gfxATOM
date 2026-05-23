@@ -54,6 +54,7 @@ class ChatterboxService:
         self._tokenizer = None
         self._default_voice = None
         self._default_ref_data: Optional[dict] = None
+        self._embed_input_names = []
 
         # Architecture params (set during load)
         self.num_hidden_layers: int = 0
@@ -102,8 +103,8 @@ class ChatterboxService:
         self._tokenizer = AutoTokenizer.from_pretrained(str(self.model_dir))
 
         # Detect architecture
-        embed_input_names = [i.name for i in self._embed_tokens.get_inputs()]
-        if "exaggeration" in embed_input_names:
+        self._embed_input_names = [i.name for i in self._embed_tokens.get_inputs()]
+        if "exaggeration" in self._embed_input_names:
             self.backbone_arch = "llama"
         else:
             self.backbone_arch = "gpt2"
@@ -202,17 +203,16 @@ class ChatterboxService:
         input_ids = self._tokenizer(text, return_tensors="np")["input_ids"].astype(np.int64)
 
         # Build embed_tokens inputs
-        embed_input_names = [i.name for i in self._embed_tokens.get_inputs()]
         ort_embed_inputs = {"input_ids": input_ids}
 
-        if "position_ids" in embed_input_names:
+        if "position_ids" in self._embed_input_names:
             position_ids = np.where(
                 input_ids >= START_SPEECH_TOKEN, 0,
                 np.arange(input_ids.shape[1])[np.newaxis, :] - 1
             )
             ort_embed_inputs["position_ids"] = position_ids
 
-        if "exaggeration" in embed_input_names:
+        if "exaggeration" in self._embed_input_names:
             ort_embed_inputs["exaggeration"] = np.array([exaggeration], dtype=np.float32)
 
         inputs_embeds = self._embed_tokens.run(None, ort_embed_inputs)[0]
@@ -234,11 +234,10 @@ class ChatterboxService:
         exaggeration: float = 0.5,
     ) -> np.ndarray:
         """Embed a single token for autoregressive generation steps."""
-        embed_input_names = [i.name for i in self._embed_tokens.get_inputs()]
         ort_inputs = {"input_ids": token_id}
-        if "position_ids" in embed_input_names:
+        if "position_ids" in self._embed_input_names:
             ort_inputs["position_ids"] = np.zeros_like(token_id)
-        if "exaggeration" in embed_input_names:
+        if "exaggeration" in self._embed_input_names:
             ort_inputs["exaggeration"] = np.array([exaggeration], dtype=np.float32)
         return self._embed_tokens.run(None, ort_inputs)[0]
 
