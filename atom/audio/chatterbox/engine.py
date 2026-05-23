@@ -51,9 +51,9 @@ class RepetitionPenaltyProcessor:
     def __call__(self, input_ids: torch.Tensor, scores: torch.Tensor) -> torch.Tensor:
         if input_ids.shape[0] == 1:
             ids = input_ids[0]
-            score = scores[0, ids]
-            score.mul_(torch.where(score < 0, self.penalty, 1.0 / self.penalty))
-            scores[0, ids] = score
+            s = scores[0, ids]
+            s.mul_(torch.where(s < 0, self.penalty, 1.0 / self.penalty))
+            scores[0, ids] = s
             return scores
 
         score = torch.gather(scores, 1, input_ids)
