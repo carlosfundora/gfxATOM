@@ -11,6 +11,7 @@ by adding inputs_embeds support to the request pipeline.
 """
 
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Optional
@@ -425,9 +426,15 @@ class ChatterboxEngine:
             tokens = tokens[:, :-1]
 
         return tokens
-
     @staticmethod
     def _np_rep_penalty(input_ids, scores, penalty):
+        if (
+            _HAS_RS_CODEC
+            and os.environ.get("RUST_REP_PENALTY", "1") == "1"
+            and hasattr(rs_codec, "rep_penalty_kernel")
+        ):
+            rs_codec.rep_penalty_kernel(scores, input_ids, penalty)
+            return scores
         if _HAS_RS_CODEC:
             rs_codec.np_rep_penalty(scores, input_ids, penalty)
             return scores
