@@ -1,39 +1,49 @@
 # Auralis Audio Optimization Report
 
 ## Summary
-Optimized the `RepetitionPenaltyProcessor` hot path in `atom/audio/chatterbox/engine.py` for autoregressive token generation. By applying explicit `.to(score.dtype)` casts when calculating the penalty matrix, we avoid accidental upcasting that degrades type safety in lower-precision (FP16/FP8) operations while still utilizing in-place `.mul_()` mutations to reduce allocation overhead.
+Optimized the Chatterbox repetition penalty hot paths used during autoregressive audio generation. The PyTorch `RepetitionPenaltyProcessor` now casts `torch.where` penalty factors back to the gathered score dtype before in-place multiplication, avoiding accidental precision promotion in lower-precision generation paths. The CPU/NumPy fallback also uses the native `rs_codec.np_rep_penalty` PyO3 kernel when available, preserving the pure NumPy fallback for environments without Rust bindings.
 
 ## Files Changed
-- `atom/audio/chatterbox/engine.py`
+- `atom/audio/chatterbox/engine.py`: Added dtype-preserving penalty multiplication in `RepetitionPenaltyProcessor` and routes `_np_rep_penalty` through `rs_codec.np_rep_penalty` when available.
+- `rs_codec/rs_codec/src/lib.rs`: Implements the native in-place `np_rep_penalty` kernel.
+- `.agents/reports/auralis-audio-optimization.md`: Records the combined optimization notes.
 
 ## Major Improvements Implemented
-- In `RepetitionPenaltyProcessor`, cast `torch.where` outputs back to `score.dtype` to prevent accidental upcasting before applying the in-place `.mul_()`. This enforces precision constraints, saving downstream conversions and improving type safety.
-- Retained the efficient boolean-mask in-place mutation approach (`s[mask] *= penalty`) in the `_np_rep_penalty` CPU fallback path after verifying that alternative `np.where` formulations result in unnecessary intermediate array allocations.
+- `RepetitionPenaltyProcessor` casts penalty factors with `.to(score.dtype)` before in-place `.mul_()` operations.
+- `_np_rep_penalty` avoids Python-side masking overhead by calling the Rust in-place kernel when `rs_codec` is importable.
+- The pure NumPy fallback remains available for environments without the Rust extension.
 
 ## Benchmarks
-- Verified correctness and safety of the PyTorch RepetitionPenaltyProcessor typecasting under fp32 scenarios.
+| Metric | Before | After | Delta | Evidence |
+|---|---:|---:|---:|---|
+| TTS NumPy Rep Penalty (1000 iter) | 1194.40 ms | 48.90 ms (w/ init) / 10.18 ms (loop only) | 1145.50 ms | `agents/scripts/verify_rep_penalty_isolated_rust.py` |
 
 ## Tests Run
-- Pytest validations on Chatterbox VLLM backend routing.
+- Compiled `rs_codec` with Maturin successfully on CPython 3.12.
+- Evaluated `_np_rep_penalty` using native Rust call successfully against the pure NumPy reference.
+- Verified PyTorch repetition penalty dtype handling under fp32 scenarios.
 
 ## Remaining Risks
-- The NumPy fallback for `_np_rep_penalty` still requires computing a boolean mask which, while efficient, constitutes a minor allocation per sequence length element.
+- The native kernel depends on `_HAS_RS_CODEC`; without it, the pure NumPy fallback is correct but slower.
 
 ## Recommended Follow-Up Work
-- Track `_generate_gpu` autoregressive batch inference optimization using `ProcessGroup` optimizations.
+- Implement the same native PyO3 Rust array mutation approach for other hot-loop pure Python paths such as `_np_apply_temperature`.
 
 ## PR Notes
-Fixes type coercion risks in `RepetitionPenaltyProcessor` while streaming audio. Ensures intermediate penalty calculations explicitly respect the input tensor's precision format before in-place modification.
-
-## Mermaid Architecture Diagram
+This PR keeps repetition penalty updates in-place while preserving tensor dtype semantics for streaming audio generation.
 
 ```mermaid
 flowchart TD
     A[Input Audio] --> B[VAD / Wake Word]
     B --> C[ASR]
     C --> D[Agent / LLM]
-    D --> E[TTS (Optimized Penalty Processor)]
-    E --> F[Jitter Buffer]
-    F --> G[FastRTC / WebRTC]
-    G --> H[Frontend Playback]
+    D --> E[TTS ChatterboxEngine]
+    E --> F{rs_codec available?}
+    F -- Yes --> G[Native Rust np_rep_penalty]
+    F -- No --> H[Pure NumPy fallback]
+    G --> I[RepetitionPenaltyProcessor dtype-preserving torch path]
+    H --> I
+    I --> J[Jitter Buffer]
+    J --> K[FastRTC / WebRTC]
+    K --> L[Frontend Playback]
 ```
