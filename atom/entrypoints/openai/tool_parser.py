@@ -106,7 +106,6 @@ def _parse_tool_call_entries(section_text: str) -> List[ToolCall]:
     return tool_calls
 
 
-@dataclass
 class ToolCallStreamParser:
     """Stateful streaming parser for tool call special tokens.
 
@@ -122,13 +121,27 @@ class ToolCallStreamParser:
         2 = done (after tool_calls_section_end)
     """
 
-    state: int = 0
-    buf: str = ""
-    current_index: int = 0
-    _emitted_calls: int = 0
+    def __init__(self):
+        try:
+            import atom_rust
+            if hasattr(atom_rust, 'ToolCallStreamParser'):
+                self._impl = atom_rust.ToolCallStreamParser()
+                self._is_rust = True
+                return
+        except ImportError:
+            pass
+
+        self._is_rust = False
+        self.state: int = 0
+        self.buf: str = ""
+        self.current_index: int = 0
+        self._emitted_calls: int = 0
 
     def process(self, text: str) -> list:
         """Process a text chunk and return list of (event_type, data) tuples."""
+        if self._is_rust:
+            return self._impl.process(text)
+
         results = []
 
         if self.state == 0:
@@ -211,6 +224,9 @@ class ToolCallStreamParser:
 
     def flush(self) -> list:
         """Flush remaining buffer content."""
+        if self._is_rust:
+            return self._impl.flush()
+
         results = []
         if self.state == 0 and self.buf:
             results.append(("content", self.buf))

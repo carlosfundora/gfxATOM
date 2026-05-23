@@ -1,9 +1,9 @@
 {
-  "candidate": "atom/entrypoints/openai/reasoning.py:ReasoningFilter",
+  "candidate": "atom/entrypoints/openai/tool_parser.py:ToolCallStreamParser",
   "implementation": "after",
-  "command": "python benchmark_reasoning_rust.py",
-  "timestamp": "2026-05-22T10:14:02Z",
-  "iterations": 220000,
-  "input_description": "220000 small streaming chunks with thinking blocks",
-  "duration_ms": 133.1877779999786
+  "command": "python benchmark_tool_parser_rust_standalone.py",
+  "timestamp": "2026-05-23T14:09:19Z",
+  "iterations": 12000,
+  "input_description": "List of 12000 tool call tokens",
+  "duration_ms": 2.2509098052978516
 }
