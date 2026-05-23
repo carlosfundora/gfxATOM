@@ -1,3 +1,6 @@
+mod tool_parser;
+mod reasoning;
+
 use ignore::WalkBuilder;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -144,5 +147,7 @@ fn atom_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compute_bytes_hash, m)?)?;
     m.add_function(wrap_pyfunction!(find_files, m)?)?;
     m.add_function(wrap_pyfunction!(parse_tool_calls, m)?)?;
+    m.add_class::<reasoning::ReasoningFilter>()?;
+    m.add_class::<tool_parser::ToolCallStreamParser>()?;
     Ok(())
 }
