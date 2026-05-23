@@ -52,12 +52,12 @@ class RepetitionPenaltyProcessor:
         if input_ids.shape[0] == 1:
             ids = input_ids[0]
             score = scores[0, ids]
-            score.mul_(torch.where(score < 0, self.penalty, 1.0 / self.penalty))
+            score.mul_(torch.where(score < 0, self.penalty, 1.0 / self.penalty).to(score.dtype))
             scores[0, ids] = score
             return scores
 
         score = torch.gather(scores, 1, input_ids)
-        score.mul_(torch.where(score < 0, self.penalty, 1.0 / self.penalty))
+        score.mul_(torch.where(score < 0, self.penalty, 1.0 / self.penalty).to(score.dtype))
         scores.scatter_(1, input_ids, score)
         return scores
 
@@ -428,15 +428,11 @@ class ChatterboxEngine:
         if input_ids.shape[0] == 1:
             ids = input_ids[0]
             s = scores[0, ids]
-            mask = s < 0
-            s[mask] *= penalty
-            s[~mask] /= penalty
+            np.multiply(s, np.where(s < 0, penalty, 1.0 / penalty).astype(s.dtype), out=s)
             scores[0, ids] = s
             return scores
 
         score = np.take_along_axis(scores, input_ids, axis=1)
-        mask = score < 0
-        score[mask] *= penalty
-        score[~mask] /= penalty
+        np.multiply(score, np.where(score < 0, penalty, 1.0 / penalty).astype(score.dtype), out=score)
         np.put_along_axis(scores, input_ids, score, axis=1)
         return scores
