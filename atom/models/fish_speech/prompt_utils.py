@@ -18,7 +18,7 @@ _CANONICAL_SPEAKER_TAG_PATTERN = re.compile(r"<\|speaker:\d+\|>")
 _CONTROL_TOKEN_PATTERN = re.compile(r"<\|[^>]+\|>")
 
 
-def normalize_fish_speech_text(text: str, *, add_default_speaker: bool = False) -> str:
+def _python_normalize_fish_speech_text(text: str, *, add_default_speaker: bool = False) -> str:
     """Normalize supported speaker tags and reject unsafe control tokens."""
     normalized = _LEGACY_SPEAKER_TAG_PATTERN.sub(r"<|speaker:\1|>", text)
 
@@ -35,6 +35,18 @@ def normalize_fish_speech_text(text: str, *, add_default_speaker: bool = False) 
         normalized = f"<|speaker:0|>{normalized}"
 
     return normalized
+
+
+def normalize_fish_speech_text(text: str, *, add_default_speaker: bool = False) -> str:
+    """Normalize supported speaker tags and reject unsafe control tokens."""
+    try:
+        import atom_rust
+        if hasattr(atom_rust, 'normalize_fish_speech_text'):
+            return atom_rust.normalize_fish_speech_text(text, add_default_speaker=add_default_speaker)
+    except (ImportError, ValueError):
+        pass
+
+    return _python_normalize_fish_speech_text(text, add_default_speaker=add_default_speaker)
 
 
 def _encode_plain_text(tokenizer: Any, text: str) -> list[int]:

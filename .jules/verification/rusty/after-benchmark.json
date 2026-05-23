@@ -1,9 +1,9 @@
 {
-  "candidate": "atom.audio.chatterbox.engine._np_rep_penalty",
+  "candidate": "atom/models/fish_speech/prompt_utils.py:normalize_fish_speech_text",
   "implementation": "after",
-  "command": "python test_np_rep_penalty_benchmark.py",
-  "timestamp": "2026-05-20T04:12:57",
-  "iterations": 10000,
-  "input_description": "Batch 1, vocab 32000, seq 512",
-  "duration_ms": 78.90009880065918
+  "command": "python benchmark_fish_speech_normalize.py after",
+  "timestamp": "2026-05-23T22:31:46.372407Z",
+  "iterations": 100000,
+  "input_description": "String with multiple legacy speaker tags and text",
+  "duration_ms": 634.9749400000064
 }
