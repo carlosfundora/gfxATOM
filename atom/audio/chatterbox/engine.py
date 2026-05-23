@@ -434,11 +434,15 @@ class ChatterboxEngine:
         if input_ids.shape[0] == 1:
             ids = input_ids[0]
             s = scores[0, ids]
-            np.multiply(s, np.where(s < 0, penalty, 1.0 / penalty).astype(s.dtype), out=s)
+            mask = s < 0
+            np.multiply(s, penalty, where=mask, out=s, casting='unsafe')
+            np.divide(s, penalty, where=~mask, out=s, casting='unsafe')
             scores[0, ids] = s
             return scores
 
         score = np.take_along_axis(scores, input_ids, axis=1)
-        np.multiply(score, np.where(score < 0, penalty, 1.0 / penalty).astype(score.dtype), out=score)
+        mask = score < 0
+        np.multiply(score, penalty, where=mask, out=score, casting='unsafe')
+        np.divide(score, penalty, where=~mask, out=score, casting='unsafe')
         np.put_along_axis(scores, input_ids, score, axis=1)
         return scores
