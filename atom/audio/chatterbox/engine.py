@@ -376,6 +376,10 @@ class ChatterboxEngine:
 
         next_token = None
         seq_len = inputs_embeds.shape[1]
+
+        if needs_position_ids:
+            pos_ids_full = np.arange(seq_len + max_tokens, dtype=np.int64)[np.newaxis, :]
+
         for i in range(max_tokens):
             if i == 0:
                 cur_embeds = inputs_embeds
@@ -395,10 +399,9 @@ class ChatterboxEngine:
             }
             if needs_position_ids:
                 if i == 0:
-                    pos_ids = np.arange(seq_len, dtype=np.int64)[np.newaxis, :]
+                    llm_inputs["position_ids"] = pos_ids_full[:, :seq_len]
                 else:
-                    pos_ids = np.array([[current_seq_len - 1]], dtype=np.int64)
-                llm_inputs["position_ids"] = pos_ids
+                    llm_inputs["position_ids"] = pos_ids_full[:, current_seq_len - 1:current_seq_len]
 
             logits, *present_kvs = llm.run(None, llm_inputs)
             logits = logits[:, -1, :]
@@ -425,6 +428,9 @@ class ChatterboxEngine:
 
     @staticmethod
     def _np_rep_penalty(input_ids, scores, penalty):
+        if _HAS_RS_CODEC:
+            rs_codec.np_rep_penalty(scores, input_ids, penalty)
+            return scores
         if input_ids.shape[0] == 1:
             ids = input_ids[0]
             s = scores[0, ids]
